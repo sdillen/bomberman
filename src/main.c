@@ -3,8 +3,8 @@
 #include <raylib.h>
 
 // Fenster Einstellungen
-static const int windowWidth = 800;
-static const int windowHeight = 600;
+static const int windowWidth = 1280;
+static const int windowHeight = 720;
 static const char *windowTitle = "Bomberman";
 static const int windowFPS = 60;
 

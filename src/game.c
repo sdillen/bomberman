@@ -2,6 +2,7 @@
 #include "input.h"
 #include "renderer.h"
 #include <raylib.h>
+#include <stdio.h>
 #include <stdlib.h>
 Game *game;
 // Game state functions
@@ -44,6 +45,10 @@ void InitGame() {
     player->entity.facing = EAST;
     player->isAlive = 1;
     player->speed = 5;
+    printf("Bomben initialisiert\n");
+    for (int i = 0; i < MAX_BOMBS; i++) {
+      player->bombs[i] = NULL;
+    }
     game->player[i] = player;
   }
 }
@@ -57,7 +62,10 @@ void initGrid(Cell grid[GRID_WIDTH][GRID_HEIGHT]) {
       } else if (isSpawn(position)) {
         updateCell(position, CELL_EMPTY);
       } else {
-        updateCell(position, CELL_DESTRUCTIBLE);
+        // 80% Chance to create a destructible
+        if (rand() % 10 <= 7) {
+          updateCell(position, CELL_DESTRUCTIBLE);
+        }
       }
     };
   };
@@ -154,6 +162,38 @@ void UpdatePlayerState(Player *player, PlayerState state) {
   player->state = state;
 }
 
+void PlantBomb(Player *player) {
+  for (int i = 0; i < MAX_BOMBS; i++) {
+    if (player->bombs[i] == NULL) {
+      player->bombs[i] = (Bomb *)malloc(sizeof(Bomb));
+      player->bombs[i]->entity.position = player->entity.position;
+      player->bombs[i]->timer = 3;
+      player->bombs[i]->startTime = GetTime();
+    }
+  }
+};
+
+void UpdateBombTimer(Player *player) {
+  for (int i = 0; i < MAX_BOMBS; i++) {
+    if (player->bombs[i] != NULL) {
+      if (player->bombs[i]->timer < (GetTime() - player->bombs[i]->startTime)) {
+        player->bombs[i]->isExploded = 1;
+      }
+    }
+  }
+}
+
+void RemoveExplodedBombs(Player *player) {
+  for (int i = 0; i < MAX_BOMBS; i++) {
+    if (player->bombs[i] != NULL) {
+      if (player->bombs[i]->isExploded) {
+        free(player->bombs[i]);
+        player->bombs[i] = NULL;
+      }
+    }
+  }
+}
+
 void GameLoop() {
   while (game->state != EXIT) {
     HandleInput(game);
@@ -200,6 +240,8 @@ void runningState(Game *game) {
     UpdateGameState(game, PAUSE_MENU);
   }
   UpdatePlayerPositionProgress(game->player[0]);
+  RemoveExplodedBombs(game->player[0]);
+  UpdateBombTimer(game->player[0]);
 }
 
 void pauseState(Game *game) {

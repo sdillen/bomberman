@@ -61,7 +61,9 @@ typedef struct {
 
 typedef struct {
   Entity entity;
-  float timer;
+  double timer;
+  double startTime;
+  _Bool isExploded;
 } Bomb;
 
 #define MAX_PLAYERS 2
@@ -77,7 +79,7 @@ typedef struct {
   float speed;
   _Bool isAlive;
   PlayerState state;
-  Bomb bombs[MAX_BOMBS];
+  Bomb *bombs[MAX_BOMBS];
 } Player;
 
 struct Game {
@@ -97,13 +99,19 @@ void GameLoop();
 
 void UpdateGameState(Game *game, GameStateType stateType);
 
+// MainMenu
 void MenuMoveUp(Game *game);
 void MenuMoveDown(Game *game);
 void MenuSelectOption(Game *game);
 
+// PauseMenu
 void PauseSwitchState(Game *game);
 
+// Player
 void MovePlayer(Player *player, Direction direction);
 void UpdatePlayerPositionProgress(Player *player);
 void UpdatePlayerState(Player *player, PlayerState state);
+
+// Bomb
+void PlantBomb(Player *player);
 #endif // STATE_H

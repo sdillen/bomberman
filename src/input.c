@@ -38,7 +38,7 @@ void HandleInput(Game *game) {
       MovePlayer(game->player[0], EAST);
     };
     if (IsKeyPressed(KEY_SPACE)) {
-      // Plant Bomb
+      PlantBomb(game->player[0]);
     };
     if (IsKeyPressed(KEY_P)) {
       LOG_INFO("Switch pause state", NULL);

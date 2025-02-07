@@ -2,13 +2,24 @@
 #include "game.h"
 #include <raylib.h>
 #include <stdlib.h>
+#include <wchar.h>
 #define TILE_SIZE 32
 
 static Texture2D wallTexture;
 static Texture2D floorTexture;
 static Texture2D boxTexture;
+static Texture2D bombTexture;
+static Animation bombSparks;
+static Animation bombExplosion;
 static Animation characterIdle;
 static Animation characterWalking;
+
+const char *bombSparkFiles[] = {"assets/effects/sparks000.png",
+                                "assets/effects/sparks001.png"};
+
+const char *bombExplosionFiles[] = {"assets/effects/explosion000.png",
+                                    "assets/effects/explosion002.png",
+                                    "assets/effects/explosion003.png"};
 
 const char *characterIdleFrames[] = {
     "assets/char/idle000.png", "assets/char/idle001.png",
@@ -44,6 +55,9 @@ void InitRenderer() {
   wallTexture = LoadTexture("assets/terrain/wall.png");
   floorTexture = LoadTexture("assets/terrain/floor.png");
   boxTexture = LoadTexture("assets/items/box.png");
+  bombTexture = LoadTexture("assets/items/bomb.png");
+  bombSparks = LoadAnimation(bombSparkFiles, 2, 0.1f);
+  bombExplosion = LoadAnimation(bombExplosionFiles, 3, 0.1f);
   characterIdle = LoadAnimation(characterIdleFrames, 4, 0.1f);
   characterWalking = LoadAnimation(characterWalkingFrames, 6, 0.1f);
 }
@@ -100,8 +114,8 @@ void renderMainMenu(Game *game) {
 void renderRunning(Game *game) {
   DrawFPS(10, 10);
 
-  Vector2 offset = {GetScreenWidth() % (TILE_SIZE * GRID_WIDTH) / 2,
-                    GetScreenHeight() % (TILE_SIZE * GRID_HEIGHT) / 2};
+  Vector2 offset = {GetScreenWidth() / 2 - (TILE_SIZE * GRID_WIDTH) / 2,
+                    GetScreenHeight() / 2 - (TILE_SIZE * GRID_HEIGHT) / 2};
 
   for (int x = 0; x < GRID_WIDTH; x++) {
     for (int y = 0; y < GRID_HEIGHT; y++) {
@@ -112,7 +126,11 @@ void renderRunning(Game *game) {
         DrawTextureV(floorTexture, position, WHITE);
         break;
       case CELL_SOLID_WALL:
-        DrawTextureV(wallTexture, position, WHITE);
+        Rectangle rec = (Rectangle){0, 0, 32, 32};
+        DrawTexturePro(
+            wallTexture, rec,
+            (Rectangle){position.x, position.y, TILE_SIZE, TILE_SIZE},
+            (Vector2){0, 0}, 0, WHITE);
         break;
       case CELL_DESTRUCTIBLE:
         DrawTextureV(floorTexture, position, WHITE);
@@ -122,8 +140,26 @@ void renderRunning(Game *game) {
       }
     }
   }
-  // Player
   Player *player = game->player[0];
+  for (int i = 0; i < MAX_BOMBS; i++) {
+    if (player->bombs[i] != NULL) {
+      Bomb *bomb = player->bombs[i];
+      Vector2 position = {TILE_SIZE * bomb->entity.position.x + offset.x,
+                          TILE_SIZE * bomb->entity.position.y + offset.y};
+      if (!bomb[i].isExploded) {
+        DrawTextureV(bombTexture, position, WHITE);
+        UpdateAnimation(&bombSparks, game->deltaTime);
+        position.y -= 8;
+        DrawTextureV(bombSparks.frames[bombSparks.currentFrame], position,
+                     WHITE);
+      } else {
+        UpdateAnimation(&bombExplosion, game->deltaTime);
+        DrawTextureV(bombExplosion.frames[bombExplosion.currentFrame], position,
+                     WHITE);
+      }
+    }
+  }
+  // Player
   Vector2 position = {
       lerp(player->entity.position.x, player->entity.targetPosition.x,
            player->entity.progress),
@@ -141,14 +177,14 @@ void renderRunning(Game *game) {
   case IDLE:
     UpdateAnimation(&characterIdle, game->deltaTime);
     DrawTexturePro(characterIdle.frames[characterIdle.currentFrame], rec,
-                   (Rectangle){position.x, position.y, 32, 32}, (Vector2){0, 0},
-                   0, WHITE);
+                   (Rectangle){position.x, position.y, TILE_SIZE, TILE_SIZE},
+                   (Vector2){0, 0}, 0, WHITE);
     break;
   case WALKING:
     UpdateAnimation(&characterWalking, game->deltaTime);
     DrawTexturePro(characterWalking.frames[characterWalking.currentFrame], rec,
-                   (Rectangle){position.x, position.y, 32, 32}, (Vector2){0, 0},
-                   0, WHITE);
+                   (Rectangle){position.x, position.y, TILE_SIZE, TILE_SIZE},
+                   (Vector2){0, 0}, 0, WHITE);
     break;
   }
 }
