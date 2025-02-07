@@ -3,7 +3,6 @@
 #include "renderer.h"
 #include <raylib.h>
 #include <stdlib.h>
-// Game
 Game *game;
 // Game state functions
 void mainMenuState(Game *game);
@@ -13,8 +12,9 @@ void exitState(Game *game);
 
 // Grid functions
 void initGrid(Cell grid[GRID_WIDTH][GRID_HEIGHT]);
-_Bool isSolidWall(int posX, int posY);
-void updateCell(int posX, int posY, CellType cellType);
+_Bool isSolidWall(Position position);
+_Bool isSpawn(Position position);
+void updateCell(Position position, CellType cellType);
 
 void InitGame() {
   // Initialize core game
@@ -51,34 +51,49 @@ void InitGame() {
 void initGrid(Cell grid[GRID_WIDTH][GRID_HEIGHT]) {
   for (int x = 0; x < GRID_WIDTH; x++) {
     for (int y = 0; y < GRID_HEIGHT; y++) {
-      if (isSolidWall(x, y)) {
-        updateCell(x, y, CELL_SOLID_WALL);
+      Position position = {x, y};
+      if (isSolidWall(position)) {
+        updateCell(position, CELL_SOLID_WALL);
+      } else if (isSpawn(position)) {
+        updateCell(position, CELL_EMPTY);
       } else {
-        updateCell(x, y, CELL_EMPTY);
+        updateCell(position, CELL_DESTRUCTIBLE);
       }
     };
   };
 }
 
-_Bool isSolidWall(int posX, int posY) {
-  if (posX == 0) {
+_Bool isSolidWall(Position position) {
+  if (position.x == 0) {
     return 1;
-  } else if (posX == GRID_WIDTH - 1) {
-    return 1;
-  }
-  if (posY == 0) {
-    return 1;
-  } else if (posY == GRID_HEIGHT - 1) {
+  } else if (position.x == GRID_WIDTH - 1) {
     return 1;
   }
-  if (posX % 2 == 0 && posY % 2 == 0) {
+  if (position.y == 0) {
+    return 1;
+  } else if (position.y == GRID_HEIGHT - 1) {
+    return 1;
+  }
+  if (position.x % 2 == 0 && position.y % 2 == 0) {
     return 1;
   }
   return 0;
 }
 
-void updateCell(int posX, int posY, CellType cellType) {
-  game->grid[posX][posY].type = cellType;
+_Bool isSpawn(Position position) {
+  if ((position.x == 1 || position.x == GRID_WIDTH - 2) &&
+      (position.y <= 3 || position.y >= GRID_HEIGHT - 4)) {
+    return 1;
+  }
+  if ((position.y == 1 || position.y == GRID_HEIGHT - 2) &&
+      (position.x <= 3 || position.x >= GRID_WIDTH - 4)) {
+    return 1;
+  }
+  return 0;
+}
+
+void updateCell(Position position, CellType cellType) {
+  game->grid[position.x][position.y].type = cellType;
 }
 
 _Bool isCollision(Position next) {

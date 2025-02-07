@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #define TILE_SIZE 32
 
+static Texture2D wallTexture;
+static Texture2D floorTexture;
+static Texture2D boxTexture;
 static Animation characterIdle;
 static Animation characterWalking;
 
@@ -38,8 +41,11 @@ void UpdateAnimation(Animation *animation, float deltaTime) {
 }
 
 void InitRenderer() {
+  wallTexture = LoadTexture("assets/terrain/wall.png");
+  floorTexture = LoadTexture("assets/terrain/floor.png");
+  boxTexture = LoadTexture("assets/items/box.png");
   characterIdle = LoadAnimation(characterIdleFrames, 4, 0.1f);
-  characterWalking = LoadAnimation(characterWalkingFrames, 6, 0.05f);
+  characterWalking = LoadAnimation(characterWalkingFrames, 6, 0.1f);
 }
 
 float lerp(float start, float end, float t) {
@@ -90,12 +96,12 @@ void renderMainMenu(Game *game) {
     }
   }
 }
+
 void renderRunning(Game *game) {
+  DrawFPS(10, 10);
+
   Vector2 offset = {GetScreenWidth() % (TILE_SIZE * GRID_WIDTH) / 2,
                     GetScreenHeight() % (TILE_SIZE * GRID_HEIGHT) / 2};
-  Vector2 size = {TILE_SIZE, TILE_SIZE};
-
-  DrawFPS(10, 10);
 
   for (int x = 0; x < GRID_WIDTH; x++) {
     for (int y = 0; y < GRID_HEIGHT; y++) {
@@ -103,11 +109,14 @@ void renderRunning(Game *game) {
       Vector2 position = {TILE_SIZE * x + offset.x, TILE_SIZE * y + offset.y};
       switch (cell.type) {
       case CELL_EMPTY:
-        DrawRectangleV(position, size, WHITE);
+        DrawTextureV(floorTexture, position, WHITE);
         break;
       case CELL_SOLID_WALL:
-        DrawRectangleV(position, size, BLACK);
+        DrawTextureV(wallTexture, position, WHITE);
         break;
+      case CELL_DESTRUCTIBLE:
+        DrawTextureV(floorTexture, position, WHITE);
+        DrawTextureV(boxTexture, position, WHITE);
       default:
         break;
       }
@@ -124,9 +133,9 @@ void renderRunning(Game *game) {
                        TILE_SIZE * position.y + offset.y};
   Rectangle rec;
   if (player->entity.facing == EAST) {
-    rec = (Rectangle){0, 0, 64, 64};
+    rec = (Rectangle){12, 12, 36, 36};
   } else {
-    rec = (Rectangle){0, 0, -64, 64};
+    rec = (Rectangle){12, 12, -36, 36};
   }
   switch (player->state) {
   case IDLE:
