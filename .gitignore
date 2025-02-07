@@ -11,4 +11,6 @@ devenv.local.nix
 .DS_Store
 .cache/
 main
+src/*.o
+src/*.so
 
