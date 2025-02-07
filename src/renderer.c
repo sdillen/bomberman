@@ -37,7 +37,7 @@ void UpdateAnimation(Animation *animation, float deltaTime) {
   }
 }
 
-void initRenderer() {
+void InitRenderer() {
   characterIdle = LoadAnimation(characterIdleFrames, 4, 0.1f);
   characterWalking = LoadAnimation(characterWalkingFrames, 6, 0.05f);
 }

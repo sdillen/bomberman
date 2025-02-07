@@ -14,7 +14,7 @@ typedef struct {
 Animation LoadAnimation(const char *fileNames[], int numFrames,
                         float frameSpeed);
 
-void initRenderer();
+void InitRenderer();
 void renderGrid();
 void Render(Game *game);
 #endif // RENDERER_H

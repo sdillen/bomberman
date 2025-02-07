@@ -12,14 +12,8 @@ EXEC = main
 
 all: $(EXEC)
 
-$(EXEC): src/main.c src/hotreload.so
-	$(CC) $(CFLAGS) -o $(EXEC) src/main.c
-
-src/hotreload.so: src/hotreload.c src/hotreload.h src/game.o src/renderer.o src/input.o src/log.o
-	$(CC) $(CFLAGS) $(OBJ) -shared -fPIC -o src/hotreload.so src/hotreload.c -lm -lpthread -ldl
-
-#src/grid.o: src/grid.c src/grid.h
-	#$(CC) $(CFLAGS) -c src/grid.c -o src/grid.o
+$(EXEC): src/main.c src/game.o src/renderer.o src/input.o src/log.o
+	$(CC) $(CFLAGS) $(OBJ) -o $(EXEC) src/main.c
 
 src/game.o: src/game.c src/game.h
 	$(CC) $(CFLAGS) -c src/game.c -o src/game.o

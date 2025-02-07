@@ -81,23 +81,43 @@ void updateCell(int posX, int posY, CellType cellType) {
   game->grid[posX][posY].type = cellType;
 }
 
+_Bool isCollision(Position next) {
+  if (game->grid[next.x][next.y].type == CELL_EMPTY) {
+    return 0;
+  }
+  return 1;
+}
+
 void MovePlayer(Player *player, Direction direction) {
   // Keinen Animationsabbruch
   if (player->state == IDLE) {
+    Position targetPosition = player->entity.targetPosition;
     switch (direction) {
     case NORTH:
-      player->entity.targetPosition.y -= 1;
+      targetPosition.y -= 1;
+      if (!isCollision(targetPosition)) {
+        player->entity.targetPosition = targetPosition;
+      }
       break;
     case EAST:
-      player->entity.targetPosition.x += 1;
-      player->entity.facing = EAST;
+      targetPosition.x += 1;
+      if (!isCollision(targetPosition)) {
+        player->entity.targetPosition = targetPosition;
+        player->entity.facing = EAST;
+      }
       break;
     case SOUTH:
-      player->entity.targetPosition.y += 1;
+      targetPosition.y += 1;
+      if (!isCollision(targetPosition)) {
+        player->entity.targetPosition = targetPosition;
+      }
       break;
     case WEST:
-      player->entity.targetPosition.x -= 1;
-      player->entity.facing = WEST;
+      targetPosition.x -= 1;
+      if (!isCollision(targetPosition)) {
+        player->entity.targetPosition = targetPosition;
+        player->entity.facing = WEST;
+      }
       break;
     }
     player->state = WALKING;
