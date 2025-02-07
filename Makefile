@@ -7,7 +7,7 @@ CFLAGS += -isystem /nix/store/bvxjdpr4zq9r4a951340wn8h35xh02vb-clang-19.1.4-lib/
 CFLAGS += ${NIX_LDFLAGS} ${NIX_CFLAGS_COMPILE}
 CFLAGS += -lraylib
 
-OBJ = src/grid.o src/game.o src/renderer.o src/input.o src/log.o
+OBJ = src/game.o src/renderer.o src/input.o src/log.o
 EXEC = main
 
 all: $(EXEC)
@@ -15,11 +15,11 @@ all: $(EXEC)
 $(EXEC): src/main.c src/hotreload.so
 	$(CC) $(CFLAGS) -o $(EXEC) src/main.c
 
-src/hotreload.so: src/hotreload.c src/hotreload.h src/grid.o src/game.o src/renderer.o src/input.o src/log.o
+src/hotreload.so: src/hotreload.c src/hotreload.h src/game.o src/renderer.o src/input.o src/log.o
 	$(CC) $(CFLAGS) $(OBJ) -shared -fPIC -o src/hotreload.so src/hotreload.c -lm -lpthread -ldl
 
-src/grid.o: src/grid.c src/grid.h
-	$(CC) $(CFLAGS) -c src/grid.c -o src/grid.o
+#src/grid.o: src/grid.c src/grid.h
+	#$(CC) $(CFLAGS) -c src/grid.c -o src/grid.o
 
 src/game.o: src/game.c src/game.h
 	$(CC) $(CFLAGS) -c src/game.c -o src/game.o

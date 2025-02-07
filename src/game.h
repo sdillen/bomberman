@@ -26,17 +26,74 @@ typedef struct {
   _Bool isActive;
 } PauseMenu;
 
+#define GRID_WIDTH 15
+#define GRID_HEIGHT 15
+
+typedef enum {
+  CELL_EMPTY,
+  CELL_SOLID_WALL,
+  CELL_DESTRUCTIBLE,
+} CellType;
+
+typedef struct {
+  CellType type;
+} Cell;
+
+typedef struct {
+  int x;
+  int y;
+} Position;
+
+typedef enum {
+  NORTH,
+  EAST,
+  SOUTH,
+  WEST,
+} Direction;
+
+typedef struct {
+  int id;
+  Position position;
+  Position targetPosition;
+  float progress;
+  Direction facing;
+} Entity;
+
+typedef struct {
+  Entity entity;
+  float timer;
+} Bomb;
+
+#define MAX_PLAYERS 2
+#define MAX_BOMBS 1
+
+typedef enum {
+  IDLE,
+  WALKING,
+} PlayerState;
+
+typedef struct {
+  Entity entity;
+  float speed;
+  _Bool isAlive;
+  PlayerState state;
+  Bomb bombs[MAX_BOMBS];
+} Player;
+
 struct Game {
   const char *title;
   GameStateType state;
   void (*stateFunction)(Game *);
   MainMenu *mainMenu;
   PauseMenu *pauseMenu;
+  float deltaTime;
+  Cell grid[GRID_WIDTH][GRID_HEIGHT];
+  Player *player[MAX_PLAYERS];
 };
 
-Game *InitGame();
+void InitGame();
 
-void GameLoop(Game *game);
+void GameLoop();
 
 void UpdateGameState(Game *game, GameStateType stateType);
 
@@ -46,25 +103,7 @@ void MenuSelectOption(Game *game);
 
 void PauseSwitchState(Game *game);
 
-typedef struct {
-  int id;
-  Vector2 position;
-  float speed;
-} Entity;
-
-typedef struct {
-  Entity entity;
-  _Bool isAlive;
-} Player;
-
-typedef struct {
-  Entity entity;
-} Bomb;
-
-typedef struct {
-  Entity entity;
-} Destructible;
-
-GameStateType updateMenu();
-
+void MovePlayer(Player *player, Direction direction);
+void UpdatePlayerPositionProgress(Player *player);
+void UpdatePlayerState(Player *player, PlayerState state);
 #endif // STATE_H

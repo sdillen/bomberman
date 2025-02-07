@@ -25,17 +25,17 @@ void HandleInput(Game *game) {
     };
     break;
   case RUNNING:
-    if (IsKeyPressed(KEY_W)) {
-      // Move player up
+    if (IsKeyPressed(KEY_W) || IsKeyDown(KEY_W)) {
+      MovePlayer(game->player[0], NORTH);
     };
-    if (IsKeyPressed(KEY_S)) {
-      // Move player down
+    if (IsKeyPressed(KEY_S) || IsKeyDown(KEY_S)) {
+      MovePlayer(game->player[0], SOUTH);
     };
-    if (IsKeyPressed(KEY_A)) {
-      // Move player left
+    if (IsKeyPressed(KEY_A) || IsKeyDown(KEY_A)) {
+      MovePlayer(game->player[0], WEST);
     };
-    if (IsKeyPressed(KEY_D)) {
-      // Move player right
+    if (IsKeyPressed(KEY_D) || IsKeyDown(KEY_D)) {
+      MovePlayer(game->player[0], EAST);
     };
     if (IsKeyPressed(KEY_SPACE)) {
       // Plant Bomb

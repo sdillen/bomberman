@@ -10,7 +10,6 @@ static const char *windowTitle = "Bomberman";
 static const int windowFPS = 60;
 
 GameStateType currentState;
-Game *game;
 
 void Init() {
   // Fenster erstellen und Einstellungen setzen
@@ -22,7 +21,7 @@ void Init() {
 
   currentState = MAIN_MENU;
 
-  game = InitGame();
+  InitGame();
 
   initRenderer();
 }
@@ -30,7 +29,7 @@ void Init() {
 void Reload() { initRenderer(); }
 
 int Update() {
-  GameLoop(game);
+  GameLoop();
   return 0;
 }
 

@@ -29,8 +29,6 @@ typedef enum {
 #define GRID_WIDTH 15
 #define GRID_HEIGHT 15
 
-#define TILE_SIZE 32
-
 void initGrid();
 void renderGrid();
 void updateGrid();

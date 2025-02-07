@@ -1,14 +1,49 @@
+#include "renderer.h"
 #include "game.h"
-#include "grid.h"
 #include <raylib.h>
+#include <stdlib.h>
+#define TILE_SIZE 32
 
-static Image image;
-static Texture2D character;
+static Animation characterIdle;
+static Animation characterWalking;
+
+const char *characterIdleFrames[] = {
+    "assets/char/idle000.png", "assets/char/idle001.png",
+    "assets/char/idle002.png", "assets/char/idle003.png"};
+
+const char *characterWalkingFrames[] = {
+    "assets/char/walk000.png", "assets/char/walk001.png",
+    "assets/char/walk002.png", "assets/char/walk003.png",
+    "assets/char/walk004.png", "assets/char/walk005.png",
+};
+
+Animation LoadAnimation(const char *fileNames[], int numFrames,
+                        float frameSpeed) {
+  Animation animation = {NULL, numFrames, frameSpeed, 0, 0.0f};
+  animation.frames =
+      (Texture2D *)malloc(sizeof(Texture2D) * animation.numFrames);
+  for (int i = 0; i < animation.numFrames; i++) {
+    animation.frames[i] = LoadTexture(fileNames[i]);
+  }
+  return animation;
+}
+
+void UpdateAnimation(Animation *animation, float deltaTime) {
+  animation->elapsedTime += deltaTime;
+  if (animation->elapsedTime >= animation->frameSpeed) {
+    animation->elapsedTime -= animation->frameSpeed;
+    animation->currentFrame =
+        (animation->currentFrame + 1) % animation->numFrames;
+  }
+}
 
 void initRenderer() {
-  image = LoadImage("./assets/char/idle000.png");
-  character = LoadTextureFromImage(image);
-  UnloadImage(image);
+  characterIdle = LoadAnimation(characterIdleFrames, 4, 0.1f);
+  characterWalking = LoadAnimation(characterWalkingFrames, 6, 0.05f);
+}
+
+float lerp(float start, float end, float t) {
+  return start + (end - start) * t;
 }
 
 void renderMainMenu(Game *game);
@@ -64,25 +99,48 @@ void renderRunning(Game *game) {
 
   for (int x = 0; x < GRID_WIDTH; x++) {
     for (int y = 0; y < GRID_HEIGHT; y++) {
-      Cell *cell = getCell((Coordinates){x, y});
+      Cell cell = game->grid[x][y];
       Vector2 position = {TILE_SIZE * x + offset.x, TILE_SIZE * y + offset.y};
-      switch (cell->type) {
-      case CELL_EMTPY:
+      switch (cell.type) {
+      case CELL_EMPTY:
         DrawRectangleV(position, size, WHITE);
         break;
       case CELL_SOLID_WALL:
         DrawRectangleV(position, size, BLACK);
         break;
-      case CELL_BOMB:
-        DrawRectangleV(position, size, RED);
-        break;
-      case CELL_PLAYER:
-        DrawTextureEx(character, position, 0, 0.5f, WHITE);
-        break;
       default:
         break;
       }
     }
+  }
+  // Player
+  Player *player = game->player[0];
+  Vector2 position = {
+      lerp(player->entity.position.x, player->entity.targetPosition.x,
+           player->entity.progress),
+      lerp(player->entity.position.y, player->entity.targetPosition.y,
+           player->entity.progress)};
+  position = (Vector2){TILE_SIZE * position.x + offset.x,
+                       TILE_SIZE * position.y + offset.y};
+  Rectangle rec;
+  if (player->entity.facing == EAST) {
+    rec = (Rectangle){0, 0, 64, 64};
+  } else {
+    rec = (Rectangle){0, 0, -64, 64};
+  }
+  switch (player->state) {
+  case IDLE:
+    UpdateAnimation(&characterIdle, game->deltaTime);
+    DrawTexturePro(characterIdle.frames[characterIdle.currentFrame], rec,
+                   (Rectangle){position.x, position.y, 32, 32}, (Vector2){0, 0},
+                   0, WHITE);
+    break;
+  case WALKING:
+    UpdateAnimation(&characterWalking, game->deltaTime);
+    DrawTexturePro(characterWalking.frames[characterWalking.currentFrame], rec,
+                   (Rectangle){position.x, position.y, 32, 32}, (Vector2){0, 0},
+                   0, WHITE);
+    break;
   }
 }
 
