@@ -17,6 +17,9 @@ _Bool isSolidWall(Position position);
 _Bool isSpawn(Position position);
 void updateCell(Position position, CellType cellType);
 
+// Bomb
+void createExplosion(Bomb *bomb);
+
 void InitGame() {
   // Initialize core game
   game = (Game *)malloc(sizeof(Game));
@@ -45,7 +48,6 @@ void InitGame() {
     player->entity.facing = EAST;
     player->isAlive = 1;
     player->speed = 5;
-    printf("Bomben initialisiert\n");
     for (int i = 0; i < MAX_BOMBS; i++) {
       player->bombs[i] = NULL;
     }
@@ -167,8 +169,11 @@ void PlantBomb(Player *player) {
     if (player->bombs[i] == NULL) {
       player->bombs[i] = (Bomb *)malloc(sizeof(Bomb));
       player->bombs[i]->entity.position = player->entity.position;
-      player->bombs[i]->timer = 3;
       player->bombs[i]->startTime = GetTime();
+      player->bombs[i]->endTime = player->bombs[i]->startTime + 3;
+      for (int j = 0; j < DIRECTIONS; j++) {
+        player->bombs[i]->explosion[j] = NULL;
+      }
     }
   }
 };
@@ -176,8 +181,11 @@ void PlantBomb(Player *player) {
 void UpdateBombTimer(Player *player) {
   for (int i = 0; i < MAX_BOMBS; i++) {
     if (player->bombs[i] != NULL) {
-      if (player->bombs[i]->timer < (GetTime() - player->bombs[i]->startTime)) {
-        player->bombs[i]->isExploded = 1;
+      Bomb *bomb = player->bombs[i];
+      if (bomb->endTime <= GetTime() && bomb->endTime != 0) {
+        createExplosion(player->bombs[i]);
+        bomb->startTime = 0;
+        bomb->endTime = 0;
       }
     }
   }
@@ -191,6 +199,112 @@ void RemoveExplodedBombs(Player *player) {
         player->bombs[i] = NULL;
       }
     }
+  }
+}
+
+void createExplosion(Bomb *bomb) {
+  double startTime = GetTime();
+  Position pos = bomb->entity.position;
+  for (int i = 0; i < DIRECTIONS; i++) {
+    Explosion *explosion = (Explosion *)malloc(sizeof(Explosion));
+    bomb->explosion[i] = explosion;
+    explosion->speed = 6;
+    explosion->blastRadius = 3;
+    explosion->entity.position = pos;
+    explosion->startTime = startTime;
+    int blastRadius = explosion->blastRadius;
+    switch (i) {
+    case NORTH:
+      explosion->entity.targetPosition = (Position){pos.x, pos.y - blastRadius};
+      break;
+    case EAST:
+      explosion->entity.targetPosition = (Position){pos.x + blastRadius, pos.y};
+      break;
+    case SOUTH:
+      explosion->entity.targetPosition = (Position){pos.x, pos.y + blastRadius};
+      break;
+    case WEST:
+      explosion->entity.targetPosition = (Position){pos.x - blastRadius, pos.y};
+      break;
+    }
+  }
+}
+
+void updateExplosionProgress(Player *player) {
+  for (int i = 0; i < MAX_BOMBS; i++) {
+    if (player->bombs[i] != NULL) {
+      Bomb *bomb = player->bombs[i];
+      if (bomb->endTime == 0) {
+        int nullExplosions = 0;
+        for (int j = 0; j < DIRECTIONS; j++) {
+          if (bomb->explosion[j] != NULL) {
+            Explosion *explosion = bomb->explosion[j];
+            float progress = game->deltaTime * explosion->speed;
+            float relPos =
+                explosion->entity.progress * (explosion->blastRadius + 1);
+            for (int k = 0; k <= explosion->blastRadius; k++) {
+              printf("%f - %d\n", relPos, k);
+              if (relPos >= k) {
+                Position cellPos;
+                switch (j) {
+                case NORTH:
+                  cellPos = (Position){explosion->entity.position.x,
+                                       explosion->entity.position.y - k};
+                  break;
+                case EAST:
+                  cellPos = (Position){explosion->entity.position.x + k,
+                                       explosion->entity.position.y};
+                  break;
+                case SOUTH:
+                  cellPos = (Position){explosion->entity.position.x,
+                                       explosion->entity.position.y + k};
+                  break;
+                case WEST:
+                  cellPos = (Position){explosion->entity.position.x - k,
+                                       explosion->entity.position.y};
+                  break;
+                }
+                Cell cell = game->grid[cellPos.x][cellPos.y];
+                if (cell.type == CELL_DESTRUCTIBLE) {
+                  updateCell(cellPos, CELL_EMPTY);
+                  bomb->explosion[j] = NULL;
+                  break;
+                  //  explosion->entity.progress = 1;
+                }
+                if (cell.type == CELL_SOLID_WALL) {
+                  bomb->explosion[j] = NULL;
+                  break;
+                  //  explosion->entity.progress = 1;
+                }
+                if (player->entity.position.x == cellPos.x &&
+                    player->entity.position.y == cellPos.y) {
+                  bomb->explosion[j] = NULL;
+                  player->isAlive = 0;
+                  break;
+                }
+              }
+            }
+            explosion->entity.progress += progress;
+            if (explosion->entity.progress >= 1) {
+              bomb->explosion[j] = NULL;
+            }
+          } else {
+            nullExplosions++;
+            if (nullExplosions == DIRECTIONS) {
+              bomb->isExploded = 1;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+void checkPlayerAlive(Player *player) {
+  if (player->isAlive == 0) {
+    game->mainMenu->next = 0;
+    game->mainMenu->selectedOption = 0;
+    UpdateGameState(game, MAIN_MENU);
   }
 }
 
@@ -240,8 +354,10 @@ void runningState(Game *game) {
     UpdateGameState(game, PAUSE_MENU);
   }
   UpdatePlayerPositionProgress(game->player[0]);
-  RemoveExplodedBombs(game->player[0]);
   UpdateBombTimer(game->player[0]);
+  updateExplosionProgress(game->player[0]);
+  RemoveExplodedBombs(game->player[0]);
+  checkPlayerAlive(game->player[0]);
 }
 
 void pauseState(Game *game) {
@@ -249,6 +365,7 @@ void pauseState(Game *game) {
     UpdateGameState(game, RUNNING);
   }
 }
+
 void exitState(Game *game) {}
 
 void MenuMoveUp(Game *game) {

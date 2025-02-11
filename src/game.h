@@ -51,6 +51,8 @@ typedef enum {
   WEST,
 } Direction;
 
+#define DIRECTIONS 4
+
 typedef struct {
   int id;
   Position position;
@@ -61,9 +63,17 @@ typedef struct {
 
 typedef struct {
   Entity entity;
-  double timer;
+  int blastRadius;
+  double startTime;
+  float speed;
+} Explosion;
+
+typedef struct {
+  Entity entity;
+  double endTime;
   double startTime;
   _Bool isExploded;
+  Explosion *explosion[DIRECTIONS];
 } Bomb;
 
 #define MAX_PLAYERS 2

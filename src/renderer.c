@@ -5,21 +5,22 @@
 #include <wchar.h>
 #define TILE_SIZE 32
 
+static Texture2D mapTexture;
 static Texture2D wallTexture;
 static Texture2D floorTexture;
 static Texture2D boxTexture;
 static Texture2D bombTexture;
 static Animation bombSparks;
-static Animation bombExplosion;
+static Animation explosionBlast;
 static Animation characterIdle;
 static Animation characterWalking;
 
 const char *bombSparkFiles[] = {"assets/effects/sparks000.png",
                                 "assets/effects/sparks001.png"};
 
-const char *bombExplosionFiles[] = {"assets/effects/explosion000.png",
-                                    "assets/effects/explosion002.png",
-                                    "assets/effects/explosion003.png"};
+const char *explosionBlastFiles[] = {
+    "assets/effects/blast000.png", "assets/effects/blast001.png",
+    "assets/effects/blast002.png", "assets/effects/blast003.png"};
 
 const char *characterIdleFrames[] = {
     "assets/char/idle000.png", "assets/char/idle001.png",
@@ -52,12 +53,13 @@ void UpdateAnimation(Animation *animation, float deltaTime) {
 }
 
 void InitRenderer() {
+  mapTexture = LoadTexture("assets/map.png");
   wallTexture = LoadTexture("assets/terrain/wall.png");
   floorTexture = LoadTexture("assets/terrain/floor.png");
   boxTexture = LoadTexture("assets/items/box.png");
   bombTexture = LoadTexture("assets/items/bomb.png");
   bombSparks = LoadAnimation(bombSparkFiles, 2, 0.1f);
-  bombExplosion = LoadAnimation(bombExplosionFiles, 3, 0.1f);
+  explosionBlast = LoadAnimation(explosionBlastFiles, 4, 0.1f);
   characterIdle = LoadAnimation(characterIdleFrames, 4, 0.1f);
   characterWalking = LoadAnimation(characterWalkingFrames, 6, 0.1f);
 }
@@ -117,48 +119,81 @@ void renderRunning(Game *game) {
   Vector2 offset = {GetScreenWidth() / 2 - (TILE_SIZE * GRID_WIDTH) / 2,
                     GetScreenHeight() / 2 - (TILE_SIZE * GRID_HEIGHT) / 2};
 
+  DrawTextureV(mapTexture, offset, WHITE);
+
   for (int x = 0; x < GRID_WIDTH; x++) {
     for (int y = 0; y < GRID_HEIGHT; y++) {
       Cell cell = game->grid[x][y];
       Vector2 position = {TILE_SIZE * x + offset.x, TILE_SIZE * y + offset.y};
       switch (cell.type) {
       case CELL_EMPTY:
-        DrawTextureV(floorTexture, position, WHITE);
         break;
       case CELL_SOLID_WALL:
-        Rectangle rec = (Rectangle){0, 0, 32, 32};
-        DrawTexturePro(
-            wallTexture, rec,
-            (Rectangle){position.x, position.y, TILE_SIZE, TILE_SIZE},
-            (Vector2){0, 0}, 0, WHITE);
         break;
       case CELL_DESTRUCTIBLE:
-        DrawTextureV(floorTexture, position, WHITE);
         DrawTextureV(boxTexture, position, WHITE);
+        break;
       default:
         break;
       }
     }
   }
+  // Bombs & Explosion
   Player *player = game->player[0];
   for (int i = 0; i < MAX_BOMBS; i++) {
     if (player->bombs[i] != NULL) {
       Bomb *bomb = player->bombs[i];
-      Vector2 position = {TILE_SIZE * bomb->entity.position.x + offset.x,
-                          TILE_SIZE * bomb->entity.position.y + offset.y};
-      if (!bomb[i].isExploded) {
+      if (bomb->endTime != 0) {
+        Vector2 position = {TILE_SIZE * bomb->entity.position.x + offset.x,
+                            TILE_SIZE * bomb->entity.position.y + offset.y};
         DrawTextureV(bombTexture, position, WHITE);
         UpdateAnimation(&bombSparks, game->deltaTime);
         position.y -= 8;
         DrawTextureV(bombSparks.frames[bombSparks.currentFrame], position,
                      WHITE);
       } else {
-        UpdateAnimation(&bombExplosion, game->deltaTime);
-        DrawTextureV(bombExplosion.frames[bombExplosion.currentFrame], position,
-                     WHITE);
+        UpdateAnimation(&explosionBlast, game->deltaTime);
+        for (int i = 0; i < 4; i++) {
+          if (bomb->explosion[i] != NULL) {
+            Explosion *explosion = bomb->explosion[i];
+            float x, y;
+            x = lerp(explosion->entity.position.x,
+                     explosion->entity.targetPosition.x,
+                     explosion->entity.progress);
+            y = lerp(explosion->entity.position.y,
+                     explosion->entity.targetPosition.y,
+                     explosion->entity.progress);
+            Vector2 v = {TILE_SIZE * x + offset.x, TILE_SIZE * y + offset.y};
+            Rectangle rec;
+            int rotation = 0;
+            Vector2 origin = {0, 0};
+            switch (i) {
+            case NORTH:
+              rec = (Rectangle){0, 0, 32, 32};
+              rotation = 270;
+              origin = (Vector2){32, 0};
+              break;
+            case EAST:
+              rec = (Rectangle){0, 0, 32, 32};
+              break;
+            case SOUTH:
+              rec = (Rectangle){0, 0, 32, 32};
+              rotation = 90;
+              origin = (Vector2){0, 32};
+              break;
+            case WEST:
+              rec = (Rectangle){0, 0, -32, 32};
+              break;
+            }
+            DrawTexturePro(explosionBlast.frames[explosionBlast.currentFrame],
+                           rec, (Rectangle){v.x, v.y, TILE_SIZE, TILE_SIZE},
+                           origin, rotation, WHITE);
+          }
+        }
       }
     }
   }
+
   // Player
   Vector2 position = {
       lerp(player->entity.position.x, player->entity.targetPosition.x,
@@ -166,7 +201,7 @@ void renderRunning(Game *game) {
       lerp(player->entity.position.y, player->entity.targetPosition.y,
            player->entity.progress)};
   position = (Vector2){TILE_SIZE * position.x + offset.x,
-                       TILE_SIZE * position.y + offset.y};
+                       TILE_SIZE * position.y + offset.y - 8};
   Rectangle rec;
   if (player->entity.facing == EAST) {
     rec = (Rectangle){12, 12, 36, 36};
