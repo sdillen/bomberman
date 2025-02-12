@@ -27,6 +27,7 @@ static Animation explosionBlast;
 static Animation characterIdle;
 static Animation characterWalking;
 
+// File pointer
 const char *starFiles[] = {
     "assets/items/star000.png", "assets/items/star001.png",
     "assets/items/star002.png", "assets/items/star003.png",
@@ -49,6 +50,52 @@ const char *characterWalkingFrames[] = {
     "assets/char/walk002.png", "assets/char/walk003.png",
     "assets/char/walk004.png", "assets/char/walk005.png",
 };
+
+// functions
+Animation loadAnimation(const char *fileNames[], int numFrames,
+                        float frameSpeed);
+void updateAnimation(Animation *animation, float deltaTime);
+void drawAnimationV(Animation *animation, Vector2 position, Color color);
+void drawAnimationPro(Animation *animation, Rectangle sourceRec,
+                      Rectangle destRec, Vector2 origin, float rotation,
+                      Color color);
+void renderMainMenu(Game *game);
+void renderRunning(Game *game);
+void renderPauseMenu(Game *game);
+
+void InitRenderer() {
+  // Textures
+  raylibLogo = LoadTexture("assets/raylib_logo.png");
+  mapTexture = LoadTexture("assets/map.png");
+  boxTexture = LoadTexture("assets/items/box.png");
+  bombTexture = LoadTexture("assets/items/bomb.png");
+  // Animations
+  star = loadAnimation(starFiles, 7, 0.1f);
+  bombSparks = loadAnimation(bombSparkFiles, 2, 0.1f);
+  explosionBlast = loadAnimation(explosionBlastFiles, 4, 0.1f);
+  characterIdle = loadAnimation(characterIdleFrames, 4, 0.1f);
+  characterWalking = loadAnimation(characterWalkingFrames, 6, 0.1f);
+}
+
+void Render(Game *game) {
+  BeginDrawing();
+  ClearBackground(BACKGROUND_COLOR);
+  switch (game->state) {
+  case MAIN_MENU:
+    renderMainMenu(game);
+    break;
+  case RUNNING:
+    renderRunning(game);
+    break;
+  case PAUSE_MENU:
+    renderRunning(game);
+    renderPauseMenu(game);
+    break;
+  case EXIT:
+    break;
+  }
+  EndDrawing();
+}
 
 Animation loadAnimation(const char *fileNames[], int numFrames,
                         float frameSpeed) {
@@ -79,44 +126,6 @@ void drawAnimationPro(Animation *animation, Rectangle sourceRec,
                       Color color) {
   DrawTexturePro(animation->frames[animation->currentFrame], sourceRec, destRec,
                  origin, rotation, color);
-}
-
-void InitRenderer() {
-  // Textures
-  raylibLogo = LoadTexture("assets/raylib_logo.png");
-  mapTexture = LoadTexture("assets/map.png");
-  boxTexture = LoadTexture("assets/items/box.png");
-  bombTexture = LoadTexture("assets/items/bomb.png");
-  // Animations
-  star = loadAnimation(starFiles, 7, 0.1f);
-  bombSparks = loadAnimation(bombSparkFiles, 2, 0.1f);
-  explosionBlast = loadAnimation(explosionBlastFiles, 4, 0.1f);
-  characterIdle = loadAnimation(characterIdleFrames, 4, 0.1f);
-  characterWalking = loadAnimation(characterWalkingFrames, 6, 0.1f);
-}
-
-void renderMainMenu(Game *game);
-void renderRunning(Game *game);
-void renderPauseMenu(Game *game);
-
-void Render(Game *game) {
-  BeginDrawing();
-  ClearBackground(BACKGROUND_COLOR);
-  switch (game->state) {
-  case MAIN_MENU:
-    renderMainMenu(game);
-    break;
-  case RUNNING:
-    renderRunning(game);
-    break;
-  case PAUSE_MENU:
-    renderRunning(game);
-    renderPauseMenu(game);
-    break;
-  case EXIT:
-    break;
-  }
-  EndDrawing();
 }
 
 void renderMainMenu(Game *game) {
