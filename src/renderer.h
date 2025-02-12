@@ -11,10 +11,6 @@ typedef struct {
   float elapsedTime;
 } Animation;
 
-Animation LoadAnimation(const char *fileNames[], int numFrames,
-                        float frameSpeed);
-
 void InitRenderer();
-void renderGrid();
 void Render(Game *game);
 #endif // RENDERER_H
