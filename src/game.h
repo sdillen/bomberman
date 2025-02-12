@@ -33,11 +33,19 @@ typedef enum {
   CELL_EMPTY,
   CELL_SOLID_WALL,
   CELL_DESTRUCTIBLE,
+  CELL_POWERUP,
 } CellType;
 
 typedef struct {
   CellType type;
 } Cell;
+
+typedef enum {
+  POWERUP_SPEED,
+  POWERUP_BOMB,
+  POWERUP_BLAST_RADIUS,
+  _POWERUP_NUM_OF_TYPES,
+} PowerUp;
 
 typedef struct {
   int x;
@@ -63,7 +71,6 @@ typedef struct {
 
 typedef struct {
   Entity entity;
-  int blastRadius;
   double startTime;
   float speed;
 } Explosion;
@@ -77,7 +84,6 @@ typedef struct {
 } Bomb;
 
 #define MAX_PLAYERS 2
-#define MAX_BOMBS 1
 
 typedef enum {
   IDLE,
@@ -89,7 +95,9 @@ typedef struct {
   float speed;
   _Bool isAlive;
   PlayerState state;
-  Bomb *bombs[MAX_BOMBS];
+  Bomb *bombList[20];
+  int bombs;
+  int blastRadius;
 } Player;
 
 struct Game {
