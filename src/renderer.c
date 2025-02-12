@@ -51,7 +51,7 @@ const char *characterWalkingFrames[] = {
     "assets/char/walk004.png", "assets/char/walk005.png",
 };
 
-// functions
+// Animation functions
 Animation loadAnimation(const char *fileNames[], int numFrames,
                         float frameSpeed);
 void updateAnimation(Animation *animation, float deltaTime);
@@ -59,9 +59,19 @@ void drawAnimationV(Animation *animation, Vector2 position, Color color);
 void drawAnimationPro(Animation *animation, Rectangle sourceRec,
                       Rectangle destRec, Vector2 origin, float rotation,
                       Color color);
+// Render state functions
 void renderMainMenu(Game *game);
 void renderRunning(Game *game);
 void renderPauseMenu(Game *game);
+
+// Render elements
+Vector2 getGridOffset();
+void renderStats(Game *game);
+void renderMap(Game *game);
+void renderPlayer(Game *game);
+void renderBombs(Game *game);
+void renderExplosions(Game *game);
+void renderItems(Game *game);
 
 void InitRenderer() {
   // Textures
@@ -164,6 +174,35 @@ void renderMainMenu(Game *game) {
 }
 
 void renderRunning(Game *game) {
+  renderStats(game);
+  renderMap(game);
+  renderItems(game);
+  renderBombs(game);
+  renderPlayer(game);
+  renderExplosions(game);
+}
+
+void renderPauseMenu(Game *game) {
+  int fontSize = TILE_SIZE;
+  int screenWidth = GetScreenWidth();
+  Color overlayColor = Fade(BACKGROUND_COLOR, 0.5f);
+  DrawRectangle(0, 0, screenWidth, GetScreenHeight(), overlayColor);
+  DrawText(game->pauseMenu->title,
+           screenWidth / 2 - MeasureText(game->pauseMenu->title, fontSize) / 2,
+           TILE_SIZE, fontSize, WHITE);
+}
+
+Vector2 getGridOffset() {
+  return (Vector2){GetScreenWidth() / 2 - (TILE_SIZE * GRID_WIDTH) / 2,
+                   GetScreenHeight() / 2 - (TILE_SIZE * GRID_HEIGHT) / 2};
+}
+
+void renderMap(Game *game) {
+  Vector2 offset = getGridOffset();
+  DrawTextureV(mapTexture, offset, WHITE);
+}
+
+void renderStats(Game *game) {
   int fontSize = TILE_SIZE;
   char fpsText[100];
   sprintf(fpsText, "FPS: %i", GetFPS());
@@ -195,46 +234,75 @@ void renderRunning(Game *game) {
       "[W],[S],[A],[D] Bewegen\n[SPACE] Bombe\n[P] Pause\n";
   DrawText(explainControlsText, TILE_SIZE, GetScreenHeight() - TILE_SIZE * 2,
            fontSize / 4, WHITE);
+}
 
-  Vector2 offset = {GetScreenWidth() / 2 - (TILE_SIZE * GRID_WIDTH) / 2,
-                    GetScreenHeight() / 2 - (TILE_SIZE * GRID_HEIGHT) / 2};
+void renderPlayer(Game *game) {
+  Vector2 offset = getGridOffset();
+  for (int i = 0; i < MAX_PLAYERS; i++) {
+    Player *player = game->player[i];
+    Vector2 position = {
+        Lerp(player->entity.position.x, player->entity.targetPosition.x,
+             player->entity.progress),
+        Lerp(player->entity.position.y, player->entity.targetPosition.y,
+             player->entity.progress)};
+    position = (Vector2){TILE_SIZE * position.x + offset.x,
+                         TILE_SIZE * position.y + offset.y - 8};
+    Rectangle rec;
+    if (player->entity.facing == EAST) {
+      rec = (Rectangle){12, 12, 36, 36};
+    } else {
+      rec = (Rectangle){12, 12, -36, 36};
+    }
+    switch (player->state) {
+    case IDLE:
+      updateAnimation(&characterIdle, game->deltaTime);
+      drawAnimationPro(
+          &characterIdle, rec,
+          (Rectangle){position.x, position.y, TILE_SIZE, TILE_SIZE},
+          (Vector2){0, 0}, 0, WHITE);
+      break;
+    case WALKING:
+      updateAnimation(&characterWalking, game->deltaTime);
+      drawAnimationPro(
+          &characterWalking, rec,
+          (Rectangle){position.x, position.y, TILE_SIZE, TILE_SIZE},
+          (Vector2){0, 0}, 0, WHITE);
+      break;
+    }
+  }
+}
 
-  DrawTextureV(mapTexture, offset, WHITE);
-  updateAnimation(&star, game->deltaTime);
-
-  for (int x = 0; x < GRID_WIDTH; x++) {
-    for (int y = 0; y < GRID_HEIGHT; y++) {
-      Cell cell = game->grid[x][y];
-      Vector2 position = {TILE_SIZE * x + offset.x, TILE_SIZE * y + offset.y};
-      switch (cell.type) {
-      case CELL_DESTRUCTIBLE:
-        DrawTextureV(boxTexture, position, WHITE);
-        break;
-      case CELL_POWERUP:
-        drawAnimationV(&star, position, WHITE);
-      default:
-        break;
+void renderBombs(Game *game) {
+  Vector2 offset = getGridOffset();
+  for (int i = 0; i < MAX_PLAYERS; i++) {
+    Player *player = game->player[i];
+    for (int j = 0; j < player->bombs; j++) {
+      if (player->bombList[j] != NULL) {
+        Bomb *bomb = player->bombList[j];
+        if (bomb->endTime != 0) {
+          Vector2 position = {TILE_SIZE * bomb->entity.position.x + offset.x,
+                              TILE_SIZE * bomb->entity.position.y + offset.y};
+          DrawTextureV(bombTexture, position, WHITE);
+          updateAnimation(&bombSparks, game->deltaTime);
+          position.y -= 8;
+          drawAnimationV(&bombSparks, position, WHITE);
+        }
       }
     }
   }
+}
 
-  // Bombs & Explosion
-  Player *player = game->player[0];
-  for (int i = 0; i < player->bombs; i++) {
-    if (player->bombList[i] != NULL) {
-      Bomb *bomb = player->bombList[i];
-      if (bomb->endTime != 0) {
-        Vector2 position = {TILE_SIZE * bomb->entity.position.x + offset.x,
-                            TILE_SIZE * bomb->entity.position.y + offset.y};
-        DrawTextureV(bombTexture, position, WHITE);
-        updateAnimation(&bombSparks, game->deltaTime);
-        position.y -= 8;
-        drawAnimationV(&bombSparks, position, WHITE);
-      } else {
+void renderExplosions(Game *game) {
+  Vector2 offset = getGridOffset();
+  for (int i = 0; i < MAX_PLAYERS; i++) {
+    Player *player = game->player[i];
+    for (int j = 0; j < player->bombs; j++) {
+      Bomb *bomb = player->bombList[j];
+      if (bomb != NULL && bomb->endTime == 0) {
         updateAnimation(&explosionBlast, game->deltaTime);
-        for (int i = 0; i < 4; i++) {
-          if (bomb->explosion[i] != NULL) {
-            Explosion *explosion = bomb->explosion[i];
+        for (int k = 0; k < 4; k++) {
+          if (bomb->explosion[k] != NULL) {
+            Explosion *explosion = bomb->explosion[k];
             float x, y;
             x = Lerp(explosion->entity.position.x,
                      explosion->entity.targetPosition.x,
@@ -246,7 +314,7 @@ void renderRunning(Game *game) {
             Rectangle rec;
             int rotation = 0;
             Vector2 origin = {0, 0};
-            switch (i) {
+            switch (k) {
             case NORTH:
               rec = (Rectangle){0, 0, 32, 32};
               rotation = 270;
@@ -272,43 +340,24 @@ void renderRunning(Game *game) {
       }
     }
   }
-
-  // Player
-  Vector2 position = {
-      Lerp(player->entity.position.x, player->entity.targetPosition.x,
-           player->entity.progress),
-      Lerp(player->entity.position.y, player->entity.targetPosition.y,
-           player->entity.progress)};
-  position = (Vector2){TILE_SIZE * position.x + offset.x,
-                       TILE_SIZE * position.y + offset.y - 8};
-  Rectangle rec;
-  if (player->entity.facing == EAST) {
-    rec = (Rectangle){12, 12, 36, 36};
-  } else {
-    rec = (Rectangle){12, 12, -36, 36};
-  }
-  switch (player->state) {
-  case IDLE:
-    updateAnimation(&characterIdle, game->deltaTime);
-    drawAnimationPro(&characterIdle, rec,
-                     (Rectangle){position.x, position.y, TILE_SIZE, TILE_SIZE},
-                     (Vector2){0, 0}, 0, WHITE);
-    break;
-  case WALKING:
-    updateAnimation(&characterWalking, game->deltaTime);
-    drawAnimationPro(&characterWalking, rec,
-                     (Rectangle){position.x, position.y, TILE_SIZE, TILE_SIZE},
-                     (Vector2){0, 0}, 0, WHITE);
-    break;
-  }
 }
 
-void renderPauseMenu(Game *game) {
-  int fontSize = TILE_SIZE;
-  int screenWidth = GetScreenWidth();
-  Color overlayColor = Fade(BACKGROUND_COLOR, 0.5f);
-  DrawRectangle(0, 0, screenWidth, GetScreenHeight(), overlayColor);
-  DrawText(game->pauseMenu->title,
-           screenWidth / 2 - MeasureText(game->pauseMenu->title, fontSize) / 2,
-           TILE_SIZE, fontSize, WHITE);
+void renderItems(Game *game) {
+  Vector2 offset = getGridOffset();
+  updateAnimation(&star, game->deltaTime);
+  for (int x = 0; x < GRID_WIDTH; x++) {
+    for (int y = 0; y < GRID_HEIGHT; y++) {
+      Cell cell = game->grid[x][y];
+      Vector2 position = {TILE_SIZE * x + offset.x, TILE_SIZE * y + offset.y};
+      switch (cell.type) {
+      case CELL_DESTRUCTIBLE:
+        DrawTextureV(boxTexture, position, WHITE);
+        break;
+      case CELL_POWERUP:
+        drawAnimationV(&star, position, WHITE);
+      default:
+        break;
+      }
+    }
+  }
 }
