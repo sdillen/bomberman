@@ -6,6 +6,8 @@
 #define TILE_SIZE 32
 
 #define BACKGROUND_COLOR (Color){30, 30, 30, 255}
+// Raylib Logo
+static Texture2D raylibLogo;
 // Map
 static Texture2D mapTexture;
 // Items
@@ -63,6 +65,7 @@ void UpdateAnimation(Animation *animation, float deltaTime) {
 }
 
 void InitRenderer() {
+  raylibLogo = LoadTexture("assets/raylib_logo.png");
   mapTexture = LoadTexture("assets/map.png");
   boxTexture = LoadTexture("assets/items/box.png");
   bombTexture = LoadTexture("assets/items/bomb.png");
@@ -102,24 +105,38 @@ void Render(Game *game) {
 }
 
 void renderMainMenu(Game *game) {
-  int fontSize = 20;
+  int fontSize = TILE_SIZE;
   int screenWidth = GetScreenWidth();
+  int screenHeight = GetScreenHeight();
+  int maxTileWidth = screenWidth / TILE_SIZE;
+  int maxTileHeight = screenHeight / TILE_SIZE;
 
   DrawText(game->title,
-           screenWidth / 2 - MeasureText(game->title, fontSize * 2) / 2, 50,
-           fontSize * 2, WHITE);
+           screenWidth / 2 - MeasureText(game->title, fontSize * 2) / 2,
+           TILE_SIZE * 2, fontSize * 2, WHITE);
+
+  DrawRectangleLines(maxTileWidth / 2 * TILE_SIZE - TILE_SIZE * 6, TILE_SIZE,
+                     TILE_SIZE * 12, TILE_SIZE * 4, WHITE);
 
   for (int i = 0; i < MENU_OPTIONS; i++) {
     int textWidth = MeasureText(game->mainMenu->options[i], fontSize);
     int x = screenWidth / 2 - textWidth / 2;
-    int y = 150 + i * (fontSize + 15);
+    int y = (TILE_SIZE) * 6 + (i * TILE_SIZE * 2);
 
     if (i == game->mainMenu->selectedOption) {
       DrawText(game->mainMenu->options[i], x, y, fontSize, RED);
+      DrawLine(x, y + TILE_SIZE, x + textWidth, y + TILE_SIZE, RED);
     } else {
       DrawText(game->mainMenu->options[i], x, y, fontSize, WHITE);
     }
   }
+
+  DrawText("Erstellt von Stefan Dillenburg", TILE_SIZE,
+           screenHeight - TILE_SIZE, TILE_SIZE / 2, WHITE);
+  DrawText("Powered by", (maxTileWidth - 7) * TILE_SIZE,
+           screenHeight - TILE_SIZE, TILE_SIZE / 4, WHITE);
+  DrawTexture(raylibLogo, (maxTileWidth - 5) * TILE_SIZE,
+              (maxTileHeight - 4) * TILE_SIZE, WHITE);
 }
 
 void renderRunning(Game *game) {
