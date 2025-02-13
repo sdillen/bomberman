@@ -342,11 +342,14 @@ void updateExplosionProgress(Player *player) {
                   break;
                   //  explosion->entity.progress = 1;
                 }
-                if (player->entity.position.x == cellPos.x &&
-                    player->entity.position.y == cellPos.y) {
-                  bomb->explosion[j] = NULL;
-                  player->isAlive = 0;
-                  break;
+                for (int l = 0; l < MAX_PLAYERS; l++) {
+                  Player *player = game->player[l];
+                  if (player->entity.position.x == cellPos.x &&
+                      player->entity.position.y == cellPos.y) {
+                    bomb->explosion[j] = NULL;
+                    player->isAlive = 0;
+                    break;
+                  }
                 }
               }
             }
@@ -368,9 +371,7 @@ void updateExplosionProgress(Player *player) {
 
 void checkPlayerAlive(Player *player) {
   if (player->isAlive == 0) {
-    game->mainMenu->next = 0;
-    game->mainMenu->selectedOption = 0;
-    UpdateGameState(game, MAIN_MENU);
+    player->state = DEAD;
   }
 }
 

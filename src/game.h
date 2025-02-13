@@ -95,6 +95,7 @@ typedef struct {
 typedef enum {
   IDLE,
   WALKING,
+  DEAD,
   _PLAYER_STATE_NUM,
 } PlayerState;
 

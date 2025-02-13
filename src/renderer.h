@@ -16,4 +16,6 @@ extern Texture2D *explosionBlastFrames;
 extern Texture2D *characterIdleFrames;
 #define CHARACTER_WALKING_FRAMES_NUM 6
 extern Texture2D *characterWalkingFrames;
+#define CHARACTER_DEAD_FRAMES_NUM 10
+extern Texture2D *characterDeadFrames;
 #endif // RENDERER_H

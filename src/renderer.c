@@ -28,29 +28,47 @@ Texture2D *explosionBlastFrames;
 // Character
 Texture2D *characterIdleFrames;
 Texture2D *characterWalkingFrames;
+Texture2D *characterDeadFrames;
 
 // File pointer
 const char *starFiles[] = {
     "assets/items/star000.png", "assets/items/star001.png",
     "assets/items/star002.png", "assets/items/star003.png",
     "assets/items/star004.png", "assets/items/star005.png",
-    "assets/items/star006.png"};
+    "assets/items/star006.png",
+};
 
-const char *bombSparkFiles[] = {"assets/effects/sparks000.png",
-                                "assets/effects/sparks001.png"};
+const char *bombSparkFiles[] = {
+    "assets/effects/sparks000.png",
+    "assets/effects/sparks001.png",
+};
 
 const char *explosionBlastFiles[] = {
-    "assets/effects/blast000.png", "assets/effects/blast001.png",
-    "assets/effects/blast002.png", "assets/effects/blast003.png"};
+    "assets/effects/blast000.png",
+    "assets/effects/blast001.png",
+    "assets/effects/blast002.png",
+    "assets/effects/blast003.png",
+};
 
 const char *characterIdleFiles[] = {
-    "assets/char/idle000.png", "assets/char/idle001.png",
-    "assets/char/idle002.png", "assets/char/idle003.png"};
+    "assets/char/idle000.png",
+    "assets/char/idle001.png",
+    "assets/char/idle002.png",
+    "assets/char/idle003.png",
+};
 
 const char *characterWalkingFiles[] = {
     "assets/char/walk000.png", "assets/char/walk001.png",
     "assets/char/walk002.png", "assets/char/walk003.png",
     "assets/char/walk004.png", "assets/char/walk005.png",
+};
+
+const char *characterDeadFiles[] = {
+    "assets/char/dead000.png", "assets/char/dead001.png",
+    "assets/char/dead002.png", "assets/char/dead003.png",
+    "assets/char/dead004.png", "assets/char/dead005.png",
+    "assets/char/dead006.png", "assets/char/dead007.png",
+    "assets/char/dead008.png", "assets/char/dead009.png",
 };
 
 // Animation functions
@@ -97,6 +115,8 @@ void InitRenderer(Game *game) {
       loadFrames(characterIdleFiles, CHARACTER_IDLE_FRAMES_NUM);
   characterWalkingFrames =
       loadFrames(characterWalkingFiles, CHARACTER_WALKING_FRAMES_NUM);
+  characterDeadFrames =
+      loadFrames(characterDeadFiles, CHARACTER_DEAD_FRAMES_NUM);
   // Animations
   starAnimation = CreateAnimation(starFrames, STAR_FRAMES_NUM, 0.1f);
   for (int i = 0; i < MAX_PLAYERS; i++) {
@@ -105,6 +125,8 @@ void InitRenderer(Game *game) {
         CreateAnimation(characterIdleFrames, CHARACTER_IDLE_FRAMES_NUM, 0.1f);
     player->animation[WALKING] = CreateAnimation(
         characterWalkingFrames, CHARACTER_IDLE_FRAMES_NUM, 0.1f);
+    player->animation[DEAD] =
+        CreateAnimation(characterDeadFrames, CHARACTER_DEAD_FRAMES_NUM, 0.1f);
   }
 }
 
@@ -275,23 +297,37 @@ void renderMap(Game *game) {
 
 void renderStats(Game *game) {
   int fontSize = TILE_SIZE;
+  int screenWidth = GetScreenWidth();
 
   // FPS
   char fpsText[100];
   sprintf(fpsText, "FPS: %i", GetFPS());
   DrawText(fpsText,
-           GetScreenWidth() - MeasureText(fpsText, fontSize / 2) - TILE_SIZE,
+           screenWidth - MeasureText(fpsText, fontSize / 2) - TILE_SIZE,
            TILE_SIZE, fontSize / 2, WHITE);
 
   DrawRectangleLines(TILE_SIZE, TILE_SIZE, TILE_SIZE * 7, TILE_SIZE * 5, WHITE);
 
   // Player Look
-  Texture2D characterTexture = game->player[0]->animation[IDLE]->frames[0];
-  Rectangle source = (Rectangle){12, 12, 36, 36};
-  DrawTexturePro(
-      characterTexture, source,
-      (Rectangle){TILE_SIZE * 2 - 8, TILE_SIZE * 2 - 8, TILE_SIZE, TILE_SIZE},
-      (Vector2){0, 0}, 0, WHITE);
+  for (int i = 0; i < MAX_PLAYERS; i++) {
+    Texture2D characterTexture = game->player[i]->animation[IDLE]->frames[0];
+    Rectangle source = (Rectangle){12, 12, 36, 36};
+    if (i == 0) {
+      DrawTexturePro(characterTexture, source,
+                     (Rectangle){TILE_SIZE * 2 - 8, TILE_SIZE * 2 - 8,
+                                 TILE_SIZE, TILE_SIZE},
+                     (Vector2){0, 0}, 0, WHITE);
+    } else {
+      float x = screenWidth - TILE_SIZE * i - 8;
+      float y = TILE_SIZE * 2 - 8;
+      DrawTexturePro(characterTexture, source,
+                     (Rectangle){x, y, TILE_SIZE, TILE_SIZE}, (Vector2){0, 0},
+                     0, WHITE);
+      if (!game->player[i]->isAlive) {
+        DrawLine(x, y, x + TILE_SIZE, y + TILE_SIZE, RED);
+      }
+    }
+  }
 
   // Speed
   char speedText[100];
@@ -356,6 +392,15 @@ void renderPlayer(Game *game) {
           (Vector2){0, 0}, 0, WHITE);
       updateAnimation(player->animation[WALKING], game->deltaTime);
       break;
+    case DEAD:
+      if (player->animation[DEAD]->numFrames - 1 !=
+          player->animation[DEAD]->currentFrame) {
+        drawAnimationPro(
+            player->animation[DEAD], rec,
+            (Rectangle){position.x, position.y, TILE_SIZE, TILE_SIZE},
+            (Vector2){0, 0}, 0, WHITE);
+        updateAnimation(player->animation[DEAD], game->deltaTime);
+      }
     default:
       break;
     }
