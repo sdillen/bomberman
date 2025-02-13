@@ -14,6 +14,8 @@ int main() {
   // Fenster erstellen und Einstellungen setzen
   InitWindow(windowWidth, windowHeight, windowTitle);
   SetTargetFPS(windowFPS);
+  // Set V-Sync
+  SetConfigFlags(FLAG_VSYNC_HINT);
 
   // Entferne Tastenbelegung vom ESC-Key zum schließen des Spiels
   SetExitKey(KEY_NULL);
