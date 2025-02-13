@@ -89,7 +89,7 @@ typedef struct {
   Animation *animation;
 } Bomb;
 
-#define MAX_PLAYERS 2
+#define MAX_PLAYERS 4
 
 typedef enum {
   IDLE,

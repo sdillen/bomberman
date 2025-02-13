@@ -15,8 +15,13 @@ void exitState(Game *game);
 // Grid functions
 void initGrid(Cell grid[GRID_WIDTH][GRID_HEIGHT]);
 _Bool isSolidWall(Position position);
-_Bool isSpawn(Position position);
+_Bool isSpawnProtected(Position position);
+Position getSpawn(int id);
 void updateCell(Position position, CellType cellType);
+_Bool isCollision(Position next);
+
+// Player functions
+Player *initPlayer(int id);
 
 // Bomb
 void createExplosion(Bomb *bomb, int blastRadius);
@@ -54,25 +59,9 @@ Game *InitGame() {
   game->pauseMenu->title = "Pause";
   // Initialize grid
   initGrid(game->grid);
-  // Initialize player
+  // Initialize players
   for (int i = 0; i < MAX_PLAYERS; i++) {
-    Player *player = (Player *)malloc(sizeof(Player));
-    if (player == NULL) {
-      LOG_ERROR("Allocation of player failed!", NULL);
-    }
-    player->entity.id = i;
-    player->entity.position.x = 1;
-    player->entity.position.y = 1;
-    player->entity.targetPosition = player->entity.position;
-    player->entity.facing = EAST;
-    player->isAlive = 1;
-    player->speed = 5;
-    player->blastRadius = 3;
-    player->bombs = 1;
-    for (int i = 0; i < player->bombs; i++) {
-      player->bombList[i] = NULL;
-    }
-    game->player[i] = player;
+    game->player[i] = initPlayer(i);
   }
   return game;
 }
@@ -83,7 +72,7 @@ void initGrid(Cell grid[GRID_WIDTH][GRID_HEIGHT]) {
       Position position = {x, y};
       if (isSolidWall(position)) {
         updateCell(position, CELL_SOLID_WALL);
-      } else if (isSpawn(position)) {
+      } else if (isSpawnProtected(position)) {
         updateCell(position, CELL_EMPTY);
       } else {
         // 80% Chance to create a destructible
@@ -112,7 +101,7 @@ _Bool isSolidWall(Position position) {
   return 0;
 }
 
-_Bool isSpawn(Position position) {
+_Bool isSpawnProtected(Position position) {
   if ((position.x == 1 || position.x == GRID_WIDTH - 2) &&
       (position.y <= 3 || position.y >= GRID_HEIGHT - 4)) {
     return 1;
@@ -122,6 +111,22 @@ _Bool isSpawn(Position position) {
     return 1;
   }
   return 0;
+}
+
+Position getSpawn(int id) {
+  // 4 possible spawn locations
+  // this will support MAX_PLAYERS = 4
+  switch (id) {
+  case 0:
+    return (Position){1, 1};
+  case 1:
+    return (Position){13, 13};
+  case 2:
+    return (Position){13, 1};
+  case 3:
+    return (Position){1, 13};
+  }
+  return (Position){0, 0};
 }
 
 void updateCell(Position position, CellType cellType) {
@@ -136,6 +141,25 @@ _Bool isCollision(Position next) {
     return 0;
   }
   return 1;
+}
+
+Player *initPlayer(int id) {
+  Player *player = (Player *)malloc(sizeof(Player));
+  if (player == NULL) {
+    LOG_ERROR("Allocation of player failed!", NULL);
+  }
+  player->entity.id = id;
+  player->entity.position = getSpawn(id);
+  player->entity.targetPosition = player->entity.position;
+  player->entity.facing = EAST;
+  player->isAlive = 1;
+  player->speed = 5;
+  player->blastRadius = 3;
+  player->bombs = 1;
+  for (int i = 0; i < player->bombs; i++) {
+    player->bombList[i] = NULL;
+  }
+  return player;
 }
 
 void MovePlayer(Player *player, Direction direction) {
