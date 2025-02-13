@@ -13,4 +13,4 @@ devenv.local.nix
 main
 src/*.o
 src/*.so
-
+compile_commands.json
