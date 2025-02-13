@@ -252,32 +252,48 @@ void renderMap(Game *game) {
 
 void renderStats(Game *game) {
   int fontSize = TILE_SIZE;
+
+  // FPS
   char fpsText[100];
   sprintf(fpsText, "FPS: %i", GetFPS());
   DrawText(fpsText,
            GetScreenWidth() - MeasureText(fpsText, fontSize / 2) - TILE_SIZE,
            TILE_SIZE, fontSize / 2, WHITE);
 
+  DrawRectangleLines(TILE_SIZE, TILE_SIZE, TILE_SIZE * 7, TILE_SIZE * 5, WHITE);
+
+  // Player Look
+  Texture2D characterTexture = game->player[0]->animation[IDLE]->frames[0];
+  Rectangle source = (Rectangle){12, 12, 36, 36};
+  DrawTexturePro(
+      characterTexture, source,
+      (Rectangle){TILE_SIZE * 2 - 8, TILE_SIZE * 2 - 8, TILE_SIZE, TILE_SIZE},
+      (Vector2){0, 0}, 0, WHITE);
+
+  // Speed
   char speedText[100];
   sprintf(speedText, "Geschwindigkeit: %.0f", game->player[0]->speed);
-  DrawText(speedText, TILE_SIZE, TILE_SIZE * 1, fontSize / 2, WHITE);
+  DrawText(speedText, TILE_SIZE * 2, TILE_SIZE * 3, fontSize / 2, WHITE);
 
-  DrawText("Bomben:", TILE_SIZE, TILE_SIZE * 2, fontSize / 2, WHITE);
+  // Bombs
+  DrawText("Bomben:", TILE_SIZE * 2, TILE_SIZE * 4, fontSize / 2, WHITE);
   for (int i = 0; i < game->player[0]->bombs; i++) {
     if (game->player[0]->bombList[i] == NULL) {
       DrawTextureV(bombTexture,
-                   (Vector2){MeasureText("Bomben:", fontSize / 2) + TILE_SIZE +
-                                 (TILE_SIZE * i) + 8,
-                             TILE_SIZE * 2 - 8},
+                   (Vector2){MeasureText("Bomben:", fontSize / 2) +
+                                 TILE_SIZE * 2 + (TILE_SIZE * i) + 8,
+                             TILE_SIZE * 4 - 8},
                    WHITE);
     }
   }
 
+  // Blast-Radius
   char blastRadiusText[100];
   sprintf(blastRadiusText, "Explosionsradius: %i",
           game->player[0]->blastRadius);
-  DrawText(blastRadiusText, TILE_SIZE, TILE_SIZE * 3, fontSize / 2, WHITE);
+  DrawText(blastRadiusText, TILE_SIZE * 2, TILE_SIZE * 5, fontSize / 2, WHITE);
 
+  // Controls
   char *explainControlsText =
       "[W],[S],[A],[D] Bewegen\n[SPACE] Bombe\n[P] Pause\n";
   DrawText(explainControlsText, TILE_SIZE, GetScreenHeight() - TILE_SIZE * 2,
