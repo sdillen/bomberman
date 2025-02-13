@@ -151,7 +151,16 @@ Player *initPlayer(int id) {
   player->entity.id = id;
   player->entity.position = getSpawn(id);
   player->entity.targetPosition = player->entity.position;
-  player->entity.facing = EAST;
+  switch (id) {
+  case (0):
+  case (3):
+    player->entity.facing = EAST;
+    break;
+  case (1):
+  case (2):
+    player->entity.facing = WEST;
+    break;
+  }
   player->isAlive = 1;
   player->speed = 5;
   player->blastRadius = 3;
