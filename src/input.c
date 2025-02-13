@@ -24,6 +24,8 @@ void HandleInput(Game *game) {
       MenuSelectOption(game);
     };
     break;
+  case RUNNING_COUNTDOWN:
+    break;
   case RUNNING:
     if (IsKeyPressed(KEY_W) || IsKeyDown(KEY_W)) {
       MovePlayer(game->player[0], NORTH);

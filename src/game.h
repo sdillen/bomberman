@@ -5,6 +5,7 @@
 
 typedef enum {
   MAIN_MENU,
+  RUNNING_COUNTDOWN,
   RUNNING,
   PAUSE_MENU,
   EXIT,
@@ -114,6 +115,7 @@ struct Game {
   void (*stateFunction)(Game *);
   MainMenu *mainMenu;
   PauseMenu *pauseMenu;
+  float countdown;
   float deltaTime;
   Cell grid[GRID_WIDTH][GRID_HEIGHT];
   Player *player[MAX_PLAYERS];

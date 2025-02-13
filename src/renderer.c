@@ -67,6 +67,7 @@ void loadExplosionAnimation(Explosion *explosion);
 
 // Render state functions
 void renderMainMenu(Game *game);
+void renderRunningCountdown(Game *game);
 void renderRunning(Game *game);
 void renderPauseMenu(Game *game);
 
@@ -115,6 +116,12 @@ void Render(Game *game) {
   case MAIN_MENU:
     LOG_DEBUG("Render: renderMainMenu", NULL);
     renderMainMenu(game);
+    break;
+  case RUNNING_COUNTDOWN:
+    LOG_DEBUG("Render: renderRunning", NULL);
+    renderRunning(game);
+    LOG_DEBUG("Render: renderRunningCountdown", NULL);
+    renderRunningCountdown(game);
     break;
   case RUNNING:
     LOG_DEBUG("Render: renderRunning", NULL);
@@ -213,6 +220,22 @@ void renderMainMenu(Game *game) {
            screenHeight - TILE_SIZE, TILE_SIZE / 4, WHITE);
   DrawTexture(raylibLogo, (maxTileWidth - 5) * TILE_SIZE,
               (maxTileHeight - 4) * TILE_SIZE, WHITE);
+}
+
+void renderRunningCountdown(Game *game) {
+  int fontSize = TILE_SIZE;
+  int screenWidth = GetScreenWidth();
+  int maxTileHeight = GetScreenHeight() % TILE_SIZE;
+  Color overlayColor = Fade(BACKGROUND_COLOR, 0.5f);
+  DrawRectangle(0, 0, screenWidth, GetScreenHeight(), overlayColor);
+  DrawText("Countdown",
+           screenWidth / 2 - MeasureText("Countdown", fontSize) / 2, TILE_SIZE,
+           fontSize, WHITE);
+  char timerText[100];
+  sprintf(timerText, "%.0f", game->countdown);
+  DrawText(timerText,
+           screenWidth / 2 - MeasureText(timerText, fontSize * 4) / 2,
+           maxTileHeight / 2 * TILE_SIZE, fontSize * 4, RED);
 }
 
 void renderRunning(Game *game) {

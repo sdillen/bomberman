@@ -8,6 +8,7 @@
 Game *game;
 // Game state functions
 void mainMenuState(Game *game);
+void runningCountdownState(Game *game);
 void runningState(Game *game);
 void pauseState(Game *game);
 void exitState(Game *game);
@@ -57,6 +58,8 @@ Game *InitGame() {
   }
   game->pauseMenu = pauseMenu;
   game->pauseMenu->title = "Pause";
+  // Countdown
+  game->countdown = 3;
   // Initialize grid
   initGrid(game->grid);
   // Initialize players
@@ -422,6 +425,10 @@ void UpdateGameState(Game *game, GameStateType stateType) {
     LOG_DEBUG("game->state: mainMenuState", NULL);
     game->stateFunction = mainMenuState;
     break;
+  case RUNNING_COUNTDOWN:
+    LOG_DEBUG("game->state: runningCountdownState", NULL);
+    game->stateFunction = runningCountdownState;
+    break;
   case RUNNING:
     LOG_DEBUG("game->state: runningState", NULL);
     game->stateFunction = runningState;
@@ -441,12 +448,21 @@ void mainMenuState(Game *game) {
   if (game->mainMenu->next) {
     switch (game->mainMenu->selectedOption) {
     case 0:
-      UpdateGameState(game, RUNNING);
+      UpdateGameState(game, RUNNING_COUNTDOWN);
       break;
     case 1:
       UpdateGameState(game, EXIT);
       break;
     }
+  }
+}
+
+void runningCountdownState(Game *game) {
+  LOG_DEBUG("runningCountdownState", NULL);
+  game->deltaTime = GetFrameTime();
+  game->countdown -= game->deltaTime;
+  if (game->countdown <= 0.0f) {
+    UpdateGameState(game, RUNNING);
   }
 }
 
