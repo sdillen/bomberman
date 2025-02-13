@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include "game.h"
+#include "log.h"
 #include "util.h"
 #include <raylib.h>
 #include <stdio.h>
@@ -16,16 +17,17 @@ static Texture2D mapTexture;
 
 // Items
 static Texture2D boxTexture;
-static Animation star;
+Texture2D *starFrames;
+Animation *starAnimation;
 
 // Bomb
 static Texture2D bombTexture;
-static Animation bombSparks;
-static Animation explosionBlast;
+Texture2D *bombSparkFrames;
+Texture2D *explosionBlastFrames;
 
 // Character
-static Animation characterIdle;
-static Animation characterWalking;
+Texture2D *characterIdleFrames;
+Texture2D *characterWalkingFrames;
 
 // File pointer
 const char *starFiles[] = {
@@ -41,24 +43,28 @@ const char *explosionBlastFiles[] = {
     "assets/effects/blast000.png", "assets/effects/blast001.png",
     "assets/effects/blast002.png", "assets/effects/blast003.png"};
 
-const char *characterIdleFrames[] = {
+const char *characterIdleFiles[] = {
     "assets/char/idle000.png", "assets/char/idle001.png",
     "assets/char/idle002.png", "assets/char/idle003.png"};
 
-const char *characterWalkingFrames[] = {
+const char *characterWalkingFiles[] = {
     "assets/char/walk000.png", "assets/char/walk001.png",
     "assets/char/walk002.png", "assets/char/walk003.png",
     "assets/char/walk004.png", "assets/char/walk005.png",
 };
 
 // Animation functions
-Animation loadAnimation(const char *fileNames[], int numFrames,
-                        float frameSpeed);
+Texture2D *loadFrames(const char *fileNames[], int numFrames);
 void updateAnimation(Animation *animation, float deltaTime);
 void drawAnimationV(Animation *animation, Vector2 position, Color color);
 void drawAnimationPro(Animation *animation, Rectangle sourceRec,
                       Rectangle destRec, Vector2 origin, float rotation,
                       Color color);
+// Entity animation functions
+void loadPlayerAnimation(Player *player);
+void loadBombAnimation(Bomb *bomb);
+void loadExplosionAnimation(Explosion *explosion);
+
 // Render state functions
 void renderMainMenu(Game *game);
 void renderRunning(Game *game);
@@ -73,32 +79,51 @@ void renderBombs(Game *game);
 void renderExplosions(Game *game);
 void renderItems(Game *game);
 
-void InitRenderer() {
+void InitRenderer(Game *game) {
   // Textures
+  LOG_DEBUG("Load static textures", NULL);
   raylibLogo = LoadTexture("assets/raylib_logo.png");
   mapTexture = LoadTexture("assets/map.png");
   boxTexture = LoadTexture("assets/items/box.png");
   bombTexture = LoadTexture("assets/items/bomb.png");
+  // Frames
+  LOG_DEBUG("Load static frames", NULL);
+  starFrames = loadFrames(starFiles, STAR_FRAMES_NUM);
+  bombSparkFrames = loadFrames(bombSparkFiles, BOMB_SPARK_FRAMES_NUM);
+  explosionBlastFrames =
+      loadFrames(explosionBlastFiles, EXPLOSION_BLAST_FRAMES_NUM);
+  characterIdleFrames =
+      loadFrames(characterIdleFiles, CHARACTER_IDLE_FRAMES_NUM);
+  characterWalkingFrames =
+      loadFrames(characterWalkingFiles, CHARACTER_WALKING_FRAMES_NUM);
   // Animations
-  star = loadAnimation(starFiles, 7, 0.1f);
-  bombSparks = loadAnimation(bombSparkFiles, 2, 0.1f);
-  explosionBlast = loadAnimation(explosionBlastFiles, 4, 0.1f);
-  characterIdle = loadAnimation(characterIdleFrames, 4, 0.1f);
-  characterWalking = loadAnimation(characterWalkingFrames, 6, 0.1f);
+  starAnimation = CreateAnimation(starFrames, STAR_FRAMES_NUM, 0.1f);
+  for (int i = 0; i < MAX_PLAYERS; i++) {
+    Player *player = game->player[i];
+    player->animation[IDLE] =
+        CreateAnimation(characterIdleFrames, CHARACTER_IDLE_FRAMES_NUM, 0.1f);
+    player->animation[WALKING] = CreateAnimation(
+        characterWalkingFrames, CHARACTER_IDLE_FRAMES_NUM, 0.1f);
+  }
 }
 
 void Render(Game *game) {
+  LOG_DEBUG("Render", NULL);
   BeginDrawing();
   ClearBackground(BACKGROUND_COLOR);
   switch (game->state) {
   case MAIN_MENU:
+    LOG_DEBUG("Render: renderMainMenu", NULL);
     renderMainMenu(game);
     break;
   case RUNNING:
+    LOG_DEBUG("Render: renderRunning", NULL);
     renderRunning(game);
     break;
   case PAUSE_MENU:
+    LOG_DEBUG("Render: renderRunning", NULL);
     renderRunning(game);
+    LOG_DEBUG("Render: renderPauseMenu", NULL);
     renderPauseMenu(game);
     break;
   case EXIT:
@@ -107,18 +132,33 @@ void Render(Game *game) {
   EndDrawing();
 }
 
-Animation loadAnimation(const char *fileNames[], int numFrames,
-                        float frameSpeed) {
-  Animation animation = {NULL, numFrames, frameSpeed, 0, 0.0f};
-  animation.frames =
-      (Texture2D *)malloc(sizeof(Texture2D) * animation.numFrames);
-  for (int i = 0; i < animation.numFrames; i++) {
-    animation.frames[i] = LoadTexture(fileNames[i]);
+Texture2D *loadFrames(const char *fileNames[], int numFrames) {
+  Texture2D *frames = (Texture2D *)malloc(sizeof(Texture2D) * numFrames);
+  if (frames == NULL) {
+    LOG_ERROR("Allocation of frames failed!", NULL);
+  }
+  for (int i = 0; i < numFrames; i++) {
+    frames[i] = LoadTexture(fileNames[i]);
+    if (frames[i].id == 0) {
+      LOG_ERROR("Failed to load texture for file: ", fileNames[i]);
+    }
+  }
+  return frames;
+}
+
+Animation *CreateAnimation(Texture2D *frames, int numFrames, float frameSpeed) {
+  Animation *animation = (Animation *)malloc(sizeof(Animation));
+  animation->frames = frames;
+  animation->numFrames = numFrames;
+  animation->frameSpeed = frameSpeed;
+  if (animation == NULL) {
+    LOG_ERROR("Allocation of animation failed!", NULL);
   }
   return animation;
 }
 
 void updateAnimation(Animation *animation, float deltaTime) {
+  LOG_DEBUG("updateAnimation", NULL);
   animation->elapsedTime += deltaTime;
   if (animation->elapsedTime >= animation->frameSpeed) {
     animation->elapsedTime -= animation->frameSpeed;
@@ -128,12 +168,14 @@ void updateAnimation(Animation *animation, float deltaTime) {
 }
 
 void drawAnimationV(Animation *animation, Vector2 position, Color color) {
+  LOG_DEBUG("drawAnimationV: %i", animation->frames->id);
   DrawTextureV(animation->frames[animation->currentFrame], position, color);
 }
 
 void drawAnimationPro(Animation *animation, Rectangle sourceRec,
                       Rectangle destRec, Vector2 origin, float rotation,
                       Color color) {
+  LOG_DEBUG("drawAnimationPro: %i", animation->frames->id);
   DrawTexturePro(animation->frames[animation->currentFrame], sourceRec, destRec,
                  origin, rotation, color);
 }
@@ -174,11 +216,17 @@ void renderMainMenu(Game *game) {
 }
 
 void renderRunning(Game *game) {
+  LOG_DEBUG("renderRunning: renderStats", NULL);
   renderStats(game);
+  LOG_DEBUG("renderRunning: renderMap", NULL);
   renderMap(game);
+  LOG_DEBUG("renderRunning: renderItems", NULL);
   renderItems(game);
+  LOG_DEBUG("renderRunning: renderBombs", NULL);
   renderBombs(game);
+  LOG_DEBUG("renderRunning: renderPlayer", NULL);
   renderPlayer(game);
+  LOG_DEBUG("renderRunning: renderExplosions", NULL);
   renderExplosions(game);
 }
 
@@ -253,20 +301,23 @@ void renderPlayer(Game *game) {
     } else {
       rec = (Rectangle){12, 12, -36, 36};
     }
+    LOG_DEBUG("player->state: %i:%i", i, player->state);
     switch (player->state) {
     case IDLE:
-      updateAnimation(&characterIdle, game->deltaTime);
       drawAnimationPro(
-          &characterIdle, rec,
+          player->animation[IDLE], rec,
           (Rectangle){position.x, position.y, TILE_SIZE, TILE_SIZE},
           (Vector2){0, 0}, 0, WHITE);
+      updateAnimation(player->animation[IDLE], game->deltaTime);
       break;
     case WALKING:
-      updateAnimation(&characterWalking, game->deltaTime);
       drawAnimationPro(
-          &characterWalking, rec,
+          player->animation[WALKING], rec,
           (Rectangle){position.x, position.y, TILE_SIZE, TILE_SIZE},
           (Vector2){0, 0}, 0, WHITE);
+      updateAnimation(player->animation[WALKING], game->deltaTime);
+      break;
+    default:
       break;
     }
   }
@@ -283,9 +334,9 @@ void renderBombs(Game *game) {
           Vector2 position = {TILE_SIZE * bomb->entity.position.x + offset.x,
                               TILE_SIZE * bomb->entity.position.y + offset.y};
           DrawTextureV(bombTexture, position, WHITE);
-          updateAnimation(&bombSparks, game->deltaTime);
           position.y -= 8;
-          drawAnimationV(&bombSparks, position, WHITE);
+          drawAnimationV(bomb->animation, position, WHITE);
+          updateAnimation(bomb->animation, game->deltaTime);
         }
       }
     }
@@ -299,8 +350,7 @@ void renderExplosions(Game *game) {
     for (int j = 0; j < player->bombs; j++) {
       Bomb *bomb = player->bombList[j];
       if (bomb != NULL && bomb->endTime == 0) {
-        updateAnimation(&explosionBlast, game->deltaTime);
-        for (int k = 0; k < 4; k++) {
+        for (int k = 0; k < _DIRECTION_NUM; k++) {
           if (bomb->explosion[k] != NULL) {
             Explosion *explosion = bomb->explosion[k];
             float x, y;
@@ -332,9 +382,10 @@ void renderExplosions(Game *game) {
               rec = (Rectangle){0, 0, -32, 32};
               break;
             }
-            drawAnimationPro(&explosionBlast, rec,
+            drawAnimationPro(explosion->animation, rec,
                              (Rectangle){v.x, v.y, TILE_SIZE, TILE_SIZE},
                              origin, rotation, WHITE);
+            updateAnimation(explosion->animation, game->deltaTime);
           }
         }
       }
@@ -344,7 +395,6 @@ void renderExplosions(Game *game) {
 
 void renderItems(Game *game) {
   Vector2 offset = getGridOffset();
-  updateAnimation(&star, game->deltaTime);
   for (int x = 0; x < GRID_WIDTH; x++) {
     for (int y = 0; y < GRID_HEIGHT; y++) {
       Cell cell = game->grid[x][y];
@@ -354,7 +404,8 @@ void renderItems(Game *game) {
         DrawTextureV(boxTexture, position, WHITE);
         break;
       case CELL_POWERUP:
-        drawAnimationV(&star, position, WHITE);
+        drawAnimationV(starAnimation, position, WHITE);
+        updateAnimation(starAnimation, game->deltaTime);
       default:
         break;
       }

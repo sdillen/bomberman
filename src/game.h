@@ -1,5 +1,6 @@
 #ifndef STATE_H
 #define STATE_H
+#include "util.h"
 #include <raylib.h>
 
 typedef enum {
@@ -44,7 +45,11 @@ typedef enum {
   POWERUP_SPEED,
   POWERUP_BOMB,
   POWERUP_BLAST_RADIUS,
-  _POWERUP_NUM_OF_TYPES,
+  _POWERUP_NUM,
+} PowerUpType;
+
+typedef struct {
+  Animation *animation;
 } PowerUp;
 
 typedef struct {
@@ -57,9 +62,8 @@ typedef enum {
   EAST,
   SOUTH,
   WEST,
+  _DIRECTION_NUM,
 } Direction;
-
-#define DIRECTIONS 4
 
 typedef struct {
   int id;
@@ -73,6 +77,7 @@ typedef struct {
   Entity entity;
   double startTime;
   float speed;
+  Animation *animation;
 } Explosion;
 
 typedef struct {
@@ -80,7 +85,8 @@ typedef struct {
   double endTime;
   double startTime;
   _Bool isExploded;
-  Explosion *explosion[DIRECTIONS];
+  Explosion *explosion[_DIRECTION_NUM];
+  Animation *animation;
 } Bomb;
 
 #define MAX_PLAYERS 2
@@ -88,6 +94,7 @@ typedef struct {
 typedef enum {
   IDLE,
   WALKING,
+  _PLAYER_STATE_NUM,
 } PlayerState;
 
 typedef struct {
@@ -98,6 +105,7 @@ typedef struct {
   Bomb *bombList[20];
   int bombs;
   int blastRadius;
+  Animation *animation[_PLAYER_STATE_NUM];
 } Player;
 
 struct Game {
@@ -111,7 +119,7 @@ struct Game {
   Player *player[MAX_PLAYERS];
 };
 
-void InitGame();
+Game *InitGame();
 
 void GameLoop();
 

@@ -1,5 +1,6 @@
 #include "game.h"
 #include "input.h"
+#include "log.h"
 #include "renderer.h"
 #include <raylib.h>
 #include <stdio.h>
@@ -27,27 +28,38 @@ void breakDestructibel(Position pos);
 void checkPlayerOnPowerUp(Player *player);
 void collectPowerUp(Position pos, Player *player);
 
-void InitGame() {
+Game *InitGame() {
   // Initialize core game
   game = (Game *)malloc(sizeof(Game));
+  if (game == NULL) {
+    LOG_ERROR("Allocation of game failed!", NULL);
+  }
   game->title = "Bomberman";
   // Set init game state
   UpdateGameState(game, MAIN_MENU);
   // Initialize main menu
   MainMenu *mainMenu = (MainMenu *)malloc(sizeof(MainMenu));
+  if (mainMenu == NULL) {
+    LOG_ERROR("Allocation of main menu failed!", NULL);
+  }
   game->mainMenu = mainMenu;
   game->mainMenu->options[0] = "Neues Spiel";
   game->mainMenu->options[1] = "Beenden";
   // Initialize pause menu
   PauseMenu *pauseMenu = (PauseMenu *)malloc(sizeof(PauseMenu));
+  if (pauseMenu == NULL) {
+    LOG_ERROR("Allocation of pause menu failed!", NULL);
+  }
   game->pauseMenu = pauseMenu;
   game->pauseMenu->title = "Pause";
-  // Initialize grid/map
+  // Initialize grid
   initGrid(game->grid);
   // Initialize player
-  // TODO: Beide Spieler dynamisch erstellen
   for (int i = 0; i < MAX_PLAYERS; i++) {
     Player *player = (Player *)malloc(sizeof(Player));
+    if (player == NULL) {
+      LOG_ERROR("Allocation of player failed!", NULL);
+    }
     player->entity.id = i;
     player->entity.position.x = 1;
     player->entity.position.y = 1;
@@ -62,6 +74,7 @@ void InitGame() {
     }
     game->player[i] = player;
   }
+  return game;
 }
 
 void initGrid(Cell grid[GRID_WIDTH][GRID_HEIGHT]) {
@@ -156,6 +169,8 @@ void MovePlayer(Player *player, Direction direction) {
         player->entity.facing = WEST;
       }
       break;
+    default:
+      break;
     }
     player->state = WALKING;
   }
@@ -179,11 +194,14 @@ void UpdatePlayerState(Player *player, PlayerState state) {
 void PlantBomb(Player *player) {
   for (int i = 0; i < player->bombs; i++) {
     if (player->bombList[i] == NULL) {
+      LOG_INFO("Bomb planted", NULL);
       player->bombList[i] = (Bomb *)malloc(sizeof(Bomb));
       player->bombList[i]->entity.position = player->entity.position;
       player->bombList[i]->startTime = GetTime();
       player->bombList[i]->endTime = player->bombList[i]->startTime + 3;
-      for (int j = 0; j < DIRECTIONS; j++) {
+      player->bombList[i]->animation =
+          CreateAnimation(bombSparkFrames, BOMB_SPARK_FRAMES_NUM, 0.1f);
+      for (int j = 0; j < _DIRECTION_NUM; j++) {
         player->bombList[i]->explosion[j] = NULL;
       }
       break;
@@ -218,12 +236,14 @@ void RemoveExplodedBombs(Player *player) {
 void createExplosion(Bomb *bomb, int blastRadius) {
   double startTime = GetTime();
   Position pos = bomb->entity.position;
-  for (int i = 0; i < DIRECTIONS; i++) {
+  for (int i = 0; i < _DIRECTION_NUM; i++) {
     Explosion *explosion = (Explosion *)malloc(sizeof(Explosion));
     bomb->explosion[i] = explosion;
     explosion->speed = 6;
     explosion->entity.position = pos;
     explosion->startTime = startTime;
+    explosion->animation =
+        CreateAnimation(explosionBlastFrames, EXPLOSION_BLAST_FRAMES_NUM, 0.1f);
     switch (i) {
     case NORTH:
       explosion->entity.targetPosition = (Position){pos.x, pos.y - blastRadius};
@@ -247,7 +267,7 @@ void updateExplosionProgress(Player *player) {
       Bomb *bomb = player->bombList[i];
       if (bomb->endTime == 0) {
         int nullExplosions = 0;
-        for (int j = 0; j < DIRECTIONS; j++) {
+        for (int j = 0; j < _DIRECTION_NUM; j++) {
           if (bomb->explosion[j] != NULL) {
             Explosion *explosion = bomb->explosion[j];
             float progress = game->deltaTime * explosion->speed;
@@ -300,7 +320,7 @@ void updateExplosionProgress(Player *player) {
             }
           } else {
             nullExplosions++;
-            if (nullExplosions == DIRECTIONS) {
+            if (nullExplosions == _DIRECTION_NUM) {
               bomb->isExploded = 1;
             }
           }
@@ -335,7 +355,7 @@ void checkPlayerOnPowerUp(Player *player) {
 }
 
 void collectPowerUp(Position pos, Player *player) {
-  int r = rand() % _POWERUP_NUM_OF_TYPES;
+  int r = rand() % _POWERUP_NUM;
   switch (r) {
   case POWERUP_SPEED:
     printf("speed collected\n");
@@ -366,15 +386,19 @@ void UpdateGameState(Game *game, GameStateType stateType) {
   game->state = stateType;
   switch (stateType) {
   case MAIN_MENU:
+    LOG_DEBUG("game->state: mainMenuState", NULL);
     game->stateFunction = mainMenuState;
     break;
   case RUNNING:
+    LOG_DEBUG("game->state: runningState", NULL);
     game->stateFunction = runningState;
     break;
   case PAUSE_MENU:
+    LOG_DEBUG("game->state: pauseState", NULL);
     game->stateFunction = pauseState;
     break;
   case EXIT:
+    LOG_DEBUG("game->state: exitState", NULL);
     game->stateFunction = exitState;
     break;
   }
@@ -394,16 +418,26 @@ void mainMenuState(Game *game) {
 }
 
 void runningState(Game *game) {
+  LOG_DEBUG("runnigState", NULL);
   game->deltaTime = GetFrameTime();
   if (game->pauseMenu->isActive) {
     UpdateGameState(game, PAUSE_MENU);
   }
-  UpdatePlayerPositionProgress(game->player[0]);
-  UpdateBombTimer(game->player[0]);
-  updateExplosionProgress(game->player[0]);
-  RemoveExplodedBombs(game->player[0]);
-  checkPlayerOnPowerUp(game->player[0]);
-  checkPlayerAlive(game->player[0]);
+  for (int i = 0; i < MAX_PLAYERS; i++) {
+    Player *player = game->player[i];
+    LOG_DEBUG("%i runningState: UpdatePlayerPositionProgress", i);
+    UpdatePlayerPositionProgress(player);
+    LOG_DEBUG("%i runningState: UpdateBombTimer", i);
+    UpdateBombTimer(player);
+    LOG_DEBUG("%i runningState: updateExplosionProgress", i);
+    updateExplosionProgress(player);
+    LOG_DEBUG("%i runningState: RemoveExplodedBombs", i);
+    RemoveExplodedBombs(player);
+    LOG_DEBUG("%i runningState: checkPlayerOnPowerUp", i);
+    checkPlayerOnPowerUp(player);
+    LOG_DEBUG("%i runningState: checkPlayerAlive", i);
+    checkPlayerAlive(player);
+  }
 }
 
 void pauseState(Game *game) {
