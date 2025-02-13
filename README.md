@@ -19,8 +19,9 @@ It is inspired by a flash game I used to play as a kid [Bomberpengu](https://bom
 
 - [ ] Enemy AI
 - [ ] Multiplayer
-- [x] Player Movement
 - [x] Bombs
+- [x] Countdown Screen
+- [x] Player Movement
 - [x] Power-Up's (Speed, Blast-Radius, Bombs)
 
 ## Acknowledgements
