@@ -27,25 +27,28 @@ void HandleInput(Game *game) {
   case RUNNING_COUNTDOWN:
     break;
   case RUNNING:
-    if (IsKeyPressed(KEY_W) || IsKeyDown(KEY_W)) {
-      MovePlayer(game->player[0], NORTH);
-    };
-    if (IsKeyPressed(KEY_S) || IsKeyDown(KEY_S)) {
-      MovePlayer(game->player[0], SOUTH);
-    };
-    if (IsKeyPressed(KEY_A) || IsKeyDown(KEY_A)) {
-      MovePlayer(game->player[0], WEST);
-    };
-    if (IsKeyPressed(KEY_D) || IsKeyDown(KEY_D)) {
-      MovePlayer(game->player[0], EAST);
-    };
-    if (IsKeyPressed(KEY_SPACE)) {
-      PlantBomb(game->player[0]);
-    };
-    if (IsKeyPressed(KEY_P)) {
-      LOG_INFO("Switch pause state", NULL);
-      PauseSwitchState(game);
-    };
+    Player *player = game->player[0];
+    if (player->isAlive) {
+      if (IsKeyPressed(KEY_W) || IsKeyDown(KEY_W)) {
+        MovePlayer(player, NORTH);
+      };
+      if (IsKeyPressed(KEY_S) || IsKeyDown(KEY_S)) {
+        MovePlayer(player, SOUTH);
+      };
+      if (IsKeyPressed(KEY_A) || IsKeyDown(KEY_A)) {
+        MovePlayer(player, WEST);
+      };
+      if (IsKeyPressed(KEY_D) || IsKeyDown(KEY_D)) {
+        MovePlayer(player, EAST);
+      };
+      if (IsKeyPressed(KEY_SPACE)) {
+        PlantBomb(player);
+      };
+      if (IsKeyPressed(KEY_P)) {
+        LOG_INFO("Switch pause state", NULL);
+        PauseSwitchState(game);
+      };
+    }
     break;
   case PAUSE_MENU:
     if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_P)) {
