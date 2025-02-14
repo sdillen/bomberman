@@ -5,6 +5,7 @@
 
 typedef enum {
   MAIN_MENU,
+  CHAR_SELECT_MENU,
   RUNNING_COUNTDOWN,
   RUNNING,
   PAUSE_MENU,
@@ -27,6 +28,15 @@ typedef struct {
   const char *title;
   _Bool isActive;
 } PauseMenu;
+
+#define CHARACTERS 18
+
+typedef struct {
+  const char *title;
+  int selectedOption;
+  Texture2D charTexture[CHARACTERS];
+  _Bool next;
+} CharSelectMenu;
 
 #define GRID_WIDTH 15
 #define GRID_HEIGHT 15
@@ -116,6 +126,7 @@ struct Game {
   void (*stateFunction)(Game *);
   MainMenu *mainMenu;
   PauseMenu *pauseMenu;
+  CharSelectMenu *charSelectMenu;
   float countdown;
   float deltaTime;
   Cell grid[GRID_WIDTH][GRID_HEIGHT];
@@ -132,6 +143,11 @@ void UpdateGameState(Game *game, GameStateType stateType);
 void MenuMoveUp(Game *game);
 void MenuMoveDown(Game *game);
 void MenuSelectOption(Game *game);
+
+// CharSelectMenu
+void NextChar(Game *game);
+void PrevChar(Game *game);
+void SelectChar(Game *game);
 
 // PauseMenu
 void PauseSwitchState(Game *game);

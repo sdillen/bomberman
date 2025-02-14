@@ -12,6 +12,9 @@
 // Raylib Logo
 static Texture2D raylibLogo;
 
+// UI
+static Texture2D arrowTexture;
+
 // Map
 static Texture2D mapTexture;
 
@@ -85,6 +88,7 @@ void loadExplosionAnimation(Explosion *explosion);
 
 // Render state functions
 void renderMainMenu(Game *game);
+void renderCharSelectMenu(Game *game);
 void renderRunningCountdown(Game *game);
 void renderRunning(Game *game);
 void renderPauseMenu(Game *game);
@@ -102,9 +106,15 @@ void InitRenderer(Game *game) {
   // Textures
   LOG_DEBUG("Load static textures", NULL);
   raylibLogo = LoadTexture("assets/raylib_logo.png");
+  arrowTexture = LoadTexture("assets/ui/arrow.png");
   mapTexture = LoadTexture("assets/map.png");
   boxTexture = LoadTexture("assets/items/box.png");
   bombTexture = LoadTexture("assets/items/bomb.png");
+  for (int i = 0; i < CHARACTERS; i++) {
+    char path[256];
+    sprintf(path, "assets/characters/%02d/idle/sprite_000.png", i);
+    game->charSelectMenu->charTexture[i] = LoadTexture(path);
+  }
   // Frames
   LOG_DEBUG("Load static frames", NULL);
   starFrames = loadFrames(starFiles, STAR_FRAMES_NUM);
@@ -144,6 +154,10 @@ void Render(Game *game) {
     renderRunning(game);
     LOG_DEBUG("Render: renderRunningCountdown", NULL);
     renderRunningCountdown(game);
+    break;
+  case CHAR_SELECT_MENU:
+    LOG_DEBUG("Reder: renderCharSelectMenu", NULL);
+    renderCharSelectMenu(game);
     break;
   case RUNNING:
     LOG_DEBUG("Render: renderRunning", NULL);
@@ -242,6 +256,42 @@ void renderMainMenu(Game *game) {
            screenHeight - TILE_SIZE, TILE_SIZE / 4, WHITE);
   DrawTexture(raylibLogo, (maxTileWidth - 5) * TILE_SIZE,
               (maxTileHeight - 4) * TILE_SIZE, WHITE);
+}
+
+void renderCharSelectMenu(Game *game) {
+  int fontSize = TILE_SIZE;
+  int screenWidth = GetScreenWidth();
+  // Draw Title
+  DrawText(game->charSelectMenu->title,
+           screenWidth / 2 -
+               MeasureText(game->charSelectMenu->title, fontSize) / 2,
+           TILE_SIZE * 2, fontSize, WHITE);
+  // Draw Character
+  int select = game->charSelectMenu->selectedOption;
+  Texture2D texture = game->charSelectMenu->charTexture[select];
+  Rectangle source = {0, 0, 64, 64};
+  DrawTexturePro(texture, source,
+                 (Rectangle){screenWidth / 2 - TILE_SIZE * 6 / 2, TILE_SIZE * 4,
+                             TILE_SIZE * 6, TILE_SIZE * 6},
+                 (Vector2){0, 0}, 0, WHITE);
+  // Draw Character Frame
+  DrawRectangleLines(screenWidth / 2 - TILE_SIZE * 6 / 2, TILE_SIZE * 4,
+                     TILE_SIZE * 6, TILE_SIZE * 6, WHITE);
+  // Selection Counter
+  char selectCoutner[4];
+  sprintf(selectCoutner, "%01d", select + 1);
+  DrawText(selectCoutner,
+           screenWidth / 2 - MeasureText(selectCoutner, fontSize) / 2,
+           TILE_SIZE * 11 - 12, fontSize, WHITE);
+  // Draw Arrows
+  Rectangle left = {0, 0, 32, 32};
+  Rectangle dest = {screenWidth / 2 - TILE_SIZE * 2 / 2 - TILE_SIZE - 8,
+                    TILE_SIZE * 10, TILE_SIZE * 2, TILE_SIZE * 2};
+  DrawTexturePro(arrowTexture, left, dest, (Vector2){0, 0}, 0, WHITE);
+  Rectangle right = {0, 0, -32, 32};
+  dest = (Rectangle){screenWidth / 2 - TILE_SIZE * 2 / 2 + TILE_SIZE + 8,
+                     TILE_SIZE * 10, TILE_SIZE * 2, TILE_SIZE * 2};
+  DrawTexturePro(arrowTexture, right, dest, (Vector2){0, 0}, 0, WHITE);
 }
 
 void renderRunningCountdown(Game *game) {

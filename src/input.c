@@ -24,6 +24,17 @@ void HandleInput(Game *game) {
       MenuSelectOption(game);
     };
     break;
+  case CHAR_SELECT_MENU:
+    if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_RIGHT)) {
+      PrevChar(game);
+    }
+    if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_LEFT)) {
+      NextChar(game);
+    }
+    if (IsKeyPressed(KEY_ENTER)) {
+      SelectChar(game);
+    }
+    break;
   case RUNNING_COUNTDOWN:
     break;
   case RUNNING:

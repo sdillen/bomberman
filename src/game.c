@@ -8,6 +8,7 @@
 Game *game;
 // Game state functions
 void mainMenuState(Game *game);
+void charSelectMenuState(Game *game);
 void runningCountdownState(Game *game);
 void runningState(Game *game);
 void pauseState(Game *game);
@@ -58,6 +59,14 @@ Game *InitGame() {
   }
   game->pauseMenu = pauseMenu;
   game->pauseMenu->title = "Pause";
+  // Initialize character select menu
+  CharSelectMenu *charSelectMenu =
+      (CharSelectMenu *)malloc(sizeof(CharSelectMenu));
+  if (charSelectMenu == NULL) {
+    LOG_ERROR("Allocation of character select menu failed!", NULL);
+  }
+  game->charSelectMenu = charSelectMenu;
+  game->charSelectMenu->title = "Wähle deinen Character";
   // Countdown
   game->countdown = 3;
   // Initialize grid
@@ -426,6 +435,10 @@ void UpdateGameState(Game *game, GameStateType stateType) {
     LOG_DEBUG("game->state: mainMenuState", NULL);
     game->stateFunction = mainMenuState;
     break;
+  case CHAR_SELECT_MENU:
+    LOG_DEBUG("game->state: charSelectMenuState", NULL);
+    game->stateFunction = charSelectMenuState;
+    break;
   case RUNNING_COUNTDOWN:
     LOG_DEBUG("game->state: runningCountdownState", NULL);
     game->stateFunction = runningCountdownState;
@@ -449,12 +462,18 @@ void mainMenuState(Game *game) {
   if (game->mainMenu->next) {
     switch (game->mainMenu->selectedOption) {
     case 0:
-      UpdateGameState(game, RUNNING_COUNTDOWN);
+      UpdateGameState(game, CHAR_SELECT_MENU);
       break;
     case 1:
       UpdateGameState(game, EXIT);
       break;
     }
+  }
+}
+
+void charSelectMenuState(Game *game) {
+  if (game->charSelectMenu->next) {
+    UpdateGameState(game, RUNNING_COUNTDOWN);
   }
 }
 
@@ -509,6 +528,16 @@ void MenuMoveDown(Game *game) {
 }
 
 void MenuSelectOption(Game *game) { game->mainMenu->next = 1; }
+
+void NextChar(Game *game) {
+  game->charSelectMenu->selectedOption =
+      (game->charSelectMenu->selectedOption + 1 + CHARACTERS) % CHARACTERS;
+}
+void PrevChar(Game *game) {
+  game->charSelectMenu->selectedOption =
+      (game->charSelectMenu->selectedOption - 1 + CHARACTERS) % CHARACTERS;
+}
+void SelectChar(Game *game) { game->charSelectMenu->next = 1; }
 
 void PauseSwitchState(Game *game) {
   game->pauseMenu->isActive = game->pauseMenu->isActive ? 0 : 1;
