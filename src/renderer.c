@@ -31,42 +31,42 @@ Texture2D *explosionBlastFrames;
 // Character
 Texture2D *characterIdleFrames;
 Texture2D *characterWalkingFrames;
-Texture2D *characterDeadFrames;
+Texture2D *characterDeathFrames;
 
 // File pointer
-const char *starFiles[] = {
+char *starFiles[] = {
     "assets/items/star000.png", "assets/items/star001.png",
     "assets/items/star002.png", "assets/items/star003.png",
     "assets/items/star004.png", "assets/items/star005.png",
     "assets/items/star006.png",
 };
 
-const char *bombSparkFiles[] = {
+char *bombSparkFiles[] = {
     "assets/effects/sparks000.png",
     "assets/effects/sparks001.png",
 };
 
-const char *explosionBlastFiles[] = {
+char *explosionBlastFiles[] = {
     "assets/effects/blast000.png",
     "assets/effects/blast001.png",
     "assets/effects/blast002.png",
     "assets/effects/blast003.png",
 };
 
-const char *characterIdleFiles[] = {
+char *characterIdleFiles[] = {
     "assets/char/idle000.png",
     "assets/char/idle001.png",
     "assets/char/idle002.png",
     "assets/char/idle003.png",
 };
 
-const char *characterWalkingFiles[] = {
+char *characterWalkingFiles[] = {
     "assets/char/walk000.png", "assets/char/walk001.png",
     "assets/char/walk002.png", "assets/char/walk003.png",
     "assets/char/walk004.png", "assets/char/walk005.png",
 };
 
-const char *characterDeadFiles[] = {
+char *characterDeathFiles[] = {
     "assets/char/dead000.png", "assets/char/dead001.png",
     "assets/char/dead002.png", "assets/char/dead003.png",
     "assets/char/dead004.png", "assets/char/dead005.png",
@@ -75,12 +75,15 @@ const char *characterDeadFiles[] = {
 };
 
 // Animation functions
-Texture2D *loadFrames(const char *fileNames[], int numFrames);
+Texture2D *loadFrames(char *fileNames[], int numFrames);
 void updateAnimation(Animation *animation, float deltaTime);
-void drawAnimationV(Animation *animation, Vector2 position, Color color);
 void drawAnimationPro(Animation *animation, Rectangle sourceRec,
                       Rectangle destRec, Vector2 origin, float rotation,
                       Color color);
+
+// Draw functions
+void drawCenteredText(const char *text, int pos_y, int font_size, Color color);
+
 // Entity animation functions
 void loadPlayerAnimation(Player *player);
 void loadBombAnimation(Bomb *bomb);
@@ -108,7 +111,7 @@ void InitRenderer(Game *game) {
   raylibLogo = LoadTexture("assets/raylib_logo.png");
   arrowTexture = LoadTexture("assets/ui/arrow.png");
   mapTexture = LoadTexture("assets/map.png");
-  boxTexture = LoadTexture("assets/items/box.png");
+  crateTexture = LoadTexture("assets/items/crate.png");
   bombTexture = LoadTexture("assets/items/bomb.png");
   for (int i = 0; i < CHARACTERS; i++) {
     char path[256];
@@ -125,19 +128,10 @@ void InitRenderer(Game *game) {
       loadFrames(characterIdleFiles, CHARACTER_IDLE_FRAMES_NUM);
   characterWalkingFrames =
       loadFrames(characterWalkingFiles, CHARACTER_WALKING_FRAMES_NUM);
-  characterDeadFrames =
-      loadFrames(characterDeadFiles, CHARACTER_DEAD_FRAMES_NUM);
+  characterDeathFrames =
+      loadFrames(characterDeathFiles, CHARACTER_DEATH_FRAMES_NUM);
   // Animations
   starAnimation = CreateAnimation(starFrames, STAR_FRAMES_NUM, 0.1f);
-  for (int i = 0; i < MAX_PLAYERS; i++) {
-    Player *player = game->player[i];
-    player->animation[IDLE] =
-        CreateAnimation(characterIdleFrames, CHARACTER_IDLE_FRAMES_NUM, 0.1f);
-    player->animation[WALKING] = CreateAnimation(
-        characterWalkingFrames, CHARACTER_IDLE_FRAMES_NUM, 0.1f);
-    player->animation[DEAD] =
-        CreateAnimation(characterDeadFrames, CHARACTER_DEAD_FRAMES_NUM, 0.1f);
-  }
 }
 
 void Render(Game *game) {
@@ -175,12 +169,13 @@ void Render(Game *game) {
   EndDrawing();
 }
 
-Texture2D *loadFrames(const char *fileNames[], int numFrames) {
+Texture2D *loadFrames(char *fileNames[], int numFrames) {
   Texture2D *frames = (Texture2D *)malloc(sizeof(Texture2D) * numFrames);
   if (frames == NULL) {
     LOG_ERROR("Allocation of frames failed!", NULL);
   }
   for (int i = 0; i < numFrames; i++) {
+    LOG_DEBUG("%s", fileNames[i]);
     frames[i] = LoadTexture(fileNames[i]);
     if (frames[i].id == 0) {
       LOG_ERROR("Failed to load texture for file: ", fileNames[i]);
@@ -198,6 +193,70 @@ Animation *CreateAnimation(Texture2D *frames, int numFrames, float frameSpeed) {
     LOG_ERROR("Allocation of animation failed!", NULL);
   }
   return animation;
+}
+
+int getCharAnimationFiles(char *file_names[], int num_frames, PlayerState state,
+                          int char_id) {
+  for (int i = 0; i < num_frames; i++) {
+    char *path = malloc(sizeof(char) * 256);
+    char str[] = "assets/characters/%02d/%s/sprite_%03d.png";
+    switch (state) {
+    case SPAWN:
+      sprintf(path, str, char_id, "spawn", i);
+      file_names[i] = path;
+      continue;
+    case IDLE:
+      sprintf(path, str, char_id, "idle", i);
+      file_names[i] = path;
+      continue;
+    case WALKING:
+      sprintf(path, str, char_id, "walking", i);
+      file_names[i] = path;
+      continue;
+    case DEATH:
+      sprintf(path, str, char_id, "death", i);
+      file_names[i] = path;
+      continue;
+    default:
+      return 1;
+      break;
+    }
+  }
+  return 0;
+}
+
+void loadCharacterAnimation(Player *player, PlayerState state, int char_id) {
+  char **file_names;
+  Texture2D *frames;
+  int num_frames;
+  switch (state) {
+  case SPAWN:
+    num_frames = CHARACTER_SPAWN_FRAMES_NUM;
+    break;
+  case IDLE:
+    num_frames = CHARACTER_IDLE_FRAMES_NUM;
+    break;
+  case WALKING:
+    num_frames = CHARACTER_WALKING_FRAMES_NUM;
+    break;
+  case DEATH:
+    num_frames = CHARACTER_DEATH_FRAMES_NUM;
+    break;
+  default:
+    num_frames = 0;
+    break;
+  }
+  file_names = (char **)malloc(sizeof(char[256]) * num_frames);
+  getCharAnimationFiles(file_names, num_frames, state, char_id);
+  frames = loadFrames(file_names, num_frames);
+  player->animation[state] = CreateAnimation(frames, num_frames, 0.1f);
+  free(file_names);
+}
+
+void SetCharAnimationSet(int char_id, Player *player) {
+  for (int i = 0; i < _PLAYER_STATE_NUM; i++) {
+    loadCharacterAnimation(player, (PlayerState)i, char_id);
+  }
 }
 
 void updateAnimation(Animation *animation, float deltaTime) {
@@ -221,6 +280,12 @@ void drawAnimationPro(Animation *animation, Rectangle sourceRec,
   LOG_DEBUG("drawAnimationPro: %i", animation->frames->id);
   DrawTexturePro(animation->frames[animation->currentFrame], sourceRec, destRec,
                  origin, rotation, color);
+}
+
+void drawCenteredText(const char *text, int pos_y, int font_size, Color color) {
+  int screenWidth = GetScreenWidth();
+  DrawText(text, screenWidth / 2 - MeasureText(text, font_size) / 2, pos_y,
+           font_size, color);
 }
 
 void renderMainMenu(Game *game) {
@@ -282,7 +347,7 @@ void renderCharSelectMenu(Game *game) {
   sprintf(selectCoutner, "%01d", select + 1);
   DrawText(selectCoutner,
            screenWidth / 2 - MeasureText(selectCoutner, fontSize) / 2,
-           TILE_SIZE * 11 - 12, fontSize, WHITE);
+           TILE_SIZE * 11 - 16, fontSize, WHITE);
   // Draw Arrows
   Rectangle left = {0, 0, 32, 32};
   Rectangle dest = {screenWidth / 2 - TILE_SIZE * 2 / 2 - TILE_SIZE - 8,
@@ -300,14 +365,10 @@ void renderRunningCountdown(Game *game) {
   int maxTileHeight = GetScreenHeight() % TILE_SIZE;
   Color overlayColor = Fade(BACKGROUND_COLOR, 0.5f);
   DrawRectangle(0, 0, screenWidth, GetScreenHeight(), overlayColor);
-  DrawText("Countdown",
-           screenWidth / 2 - MeasureText("Countdown", fontSize) / 2, TILE_SIZE,
-           fontSize, WHITE);
+  drawCenteredText("Countdown", TILE_SIZE, fontSize, WHITE);
   char timerText[100];
   sprintf(timerText, "%.0f", game->countdown);
-  DrawText(timerText,
-           screenWidth / 2 - MeasureText(timerText, fontSize * 4) / 2,
-           maxTileHeight / 2 * TILE_SIZE, fontSize * 4, RED);
+  drawCenteredText(timerText, maxTileHeight / 2 * TILE_SIZE, fontSize * 4, RED);
 }
 
 void renderRunning(Game *game) {
@@ -330,9 +391,7 @@ void renderPauseMenu(Game *game) {
   int screenWidth = GetScreenWidth();
   Color overlayColor = Fade(BACKGROUND_COLOR, 0.5f);
   DrawRectangle(0, 0, screenWidth, GetScreenHeight(), overlayColor);
-  DrawText(game->pauseMenu->title,
-           screenWidth / 2 - MeasureText(game->pauseMenu->title, fontSize) / 2,
-           TILE_SIZE, fontSize, WHITE);
+  drawCenteredText(game->pauseMenu->title, TILE_SIZE, fontSize, WHITE);
 }
 
 Vector2 getGridOffset() {
@@ -409,6 +468,19 @@ void renderStats(Game *game) {
            fontSize / 4, WHITE);
 }
 
+_Bool isLastFrame(Animation *animation) {
+  if (animation->numFrames - 1 == animation->currentFrame) {
+    return 1;
+  }
+  return 0;
+}
+
+void renderPlayerAnimation(Animation *animation, Rectangle source,
+                           Rectangle dest, float deltaTime) {
+  drawAnimationPro(animation, source, dest, (Vector2){0, 0}, 0, WHITE);
+  updateAnimation(animation, deltaTime);
+}
+
 void renderPlayer(Game *game) {
   Vector2 offset = getGridOffset();
   for (int i = 0; i < MAX_PLAYERS; i++) {
@@ -420,36 +492,34 @@ void renderPlayer(Game *game) {
              player->entity.progress)};
     position = (Vector2){TILE_SIZE * position.x + offset.x,
                          TILE_SIZE * position.y + offset.y - 8};
-    Rectangle rec;
+    Rectangle source;
     if (player->entity.facing == EAST) {
-      rec = (Rectangle){12, 12, 36, 36};
+      source = (Rectangle){12, 12, 36, 36};
     } else {
-      rec = (Rectangle){12, 12, -36, 36};
+      source = (Rectangle){12, 12, -36, 36};
     }
     LOG_DEBUG("player->state: %i:%i", i, player->state);
+    Rectangle dest = {position.x, position.y, TILE_SIZE, TILE_SIZE};
     switch (player->state) {
+    case SPAWN:
+      if (!isLastFrame(player->animation[SPAWN])) {
+        renderPlayerAnimation(player->animation[SPAWN], source, dest,
+                              game->deltaTime);
+      }
+      break;
     case IDLE:
-      drawAnimationPro(
-          player->animation[IDLE], rec,
-          (Rectangle){position.x, position.y, TILE_SIZE, TILE_SIZE},
-          (Vector2){0, 0}, 0, WHITE);
-      updateAnimation(player->animation[IDLE], game->deltaTime);
+      renderPlayerAnimation(player->animation[IDLE], source, dest,
+                            game->deltaTime);
       break;
     case WALKING:
-      drawAnimationPro(
-          player->animation[WALKING], rec,
-          (Rectangle){position.x, position.y, TILE_SIZE, TILE_SIZE},
-          (Vector2){0, 0}, 0, WHITE);
-      updateAnimation(player->animation[WALKING], game->deltaTime);
+      renderPlayerAnimation(player->animation[WALKING], source, dest,
+                            game->deltaTime);
       break;
-    case DEAD:
-      if (player->animation[DEAD]->numFrames - 1 !=
-          player->animation[DEAD]->currentFrame) {
-        drawAnimationPro(
-            player->animation[DEAD], rec,
-            (Rectangle){position.x, position.y, TILE_SIZE, TILE_SIZE},
-            (Vector2){0, 0}, 0, WHITE);
-        updateAnimation(player->animation[DEAD], game->deltaTime);
+    case DEATH:
+      if (player->animation[DEATH]->numFrames - 1 !=
+          player->animation[DEATH]->currentFrame) {
+        renderPlayerAnimation(player->animation[DEATH], source, dest,
+                              game->deltaTime);
       }
     default:
       break;
@@ -535,7 +605,7 @@ void renderItems(Game *game) {
       Vector2 position = {TILE_SIZE * x + offset.x, TILE_SIZE * y + offset.y};
       switch (cell.type) {
       case CELL_DESTRUCTIBLE:
-        DrawTextureV(boxTexture, position, WHITE);
+        DrawTextureV(crateTexture, position, WHITE);
         break;
       case CELL_POWERUP:
         drawAnimationV(starAnimation, position, WHITE);

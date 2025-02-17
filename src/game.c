@@ -380,7 +380,7 @@ void updateExplosionProgress(Player *player) {
 
 void checkPlayerAlive(Player *player) {
   if (player->isAlive == 0) {
-    player->state = DEAD;
+    player->state = DEATH;
   }
 }
 
@@ -473,6 +473,15 @@ void mainMenuState(Game *game) {
 
 void charSelectMenuState(Game *game) {
   if (game->charSelectMenu->next) {
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+      if (i == 0) {
+        SetCharAnimationSet(game->charSelectMenu->selectedOption,
+                            game->player[i]);
+      } else {
+        int char_id = rand() % CHARACTERS;
+        SetCharAnimationSet(char_id, game->player[i]);
+      }
+    }
     UpdateGameState(game, RUNNING_COUNTDOWN);
   }
 }
@@ -480,6 +489,13 @@ void charSelectMenuState(Game *game) {
 void runningCountdownState(Game *game) {
   LOG_DEBUG("runningCountdownState", NULL);
   game->deltaTime = GetFrameTime();
+  for (int i = 0; i < MAX_PLAYERS; i++) {
+    Player *player = game->player[i];
+    if (player->animation[SPAWN]->currentFrame ==
+        player->animation[SPAWN]->numFrames - 1) {
+      UpdatePlayerState(player, IDLE);
+    }
+  }
   game->countdown -= game->deltaTime;
   if (game->countdown <= 0.0f) {
     UpdateGameState(game, RUNNING);

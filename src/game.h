@@ -103,9 +103,10 @@ typedef struct {
 #define MAX_PLAYERS 4
 
 typedef enum {
+  SPAWN,
   IDLE,
   WALKING,
-  DEAD,
+  DEATH,
   _PLAYER_STATE_NUM,
 } PlayerState;
 
