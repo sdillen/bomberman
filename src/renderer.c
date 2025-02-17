@@ -28,11 +28,6 @@ static Texture2D bombTexture;
 Texture2D *bombSparkFrames;
 Texture2D *explosionBlastFrames;
 
-// Character
-Texture2D *characterIdleFrames;
-Texture2D *characterWalkingFrames;
-Texture2D *characterDeathFrames;
-
 // File pointer
 char *starFiles[] = {
     "assets/items/star000.png", "assets/items/star001.png",
@@ -51,27 +46,6 @@ char *explosionBlastFiles[] = {
     "assets/effects/blast001.png",
     "assets/effects/blast002.png",
     "assets/effects/blast003.png",
-};
-
-char *characterIdleFiles[] = {
-    "assets/char/idle000.png",
-    "assets/char/idle001.png",
-    "assets/char/idle002.png",
-    "assets/char/idle003.png",
-};
-
-char *characterWalkingFiles[] = {
-    "assets/char/walk000.png", "assets/char/walk001.png",
-    "assets/char/walk002.png", "assets/char/walk003.png",
-    "assets/char/walk004.png", "assets/char/walk005.png",
-};
-
-char *characterDeathFiles[] = {
-    "assets/char/dead000.png", "assets/char/dead001.png",
-    "assets/char/dead002.png", "assets/char/dead003.png",
-    "assets/char/dead004.png", "assets/char/dead005.png",
-    "assets/char/dead006.png", "assets/char/dead007.png",
-    "assets/char/dead008.png", "assets/char/dead009.png",
 };
 
 // Animation functions
@@ -124,12 +98,6 @@ void InitRenderer(Game *game) {
   bombSparkFrames = loadFrames(bombSparkFiles, BOMB_SPARK_FRAMES_NUM);
   explosionBlastFrames =
       loadFrames(explosionBlastFiles, EXPLOSION_BLAST_FRAMES_NUM);
-  characterIdleFrames =
-      loadFrames(characterIdleFiles, CHARACTER_IDLE_FRAMES_NUM);
-  characterWalkingFrames =
-      loadFrames(characterWalkingFiles, CHARACTER_WALKING_FRAMES_NUM);
-  characterDeathFrames =
-      loadFrames(characterDeathFiles, CHARACTER_DEATH_FRAMES_NUM);
   // Animations
   starAnimation = CreateAnimation(starFrames, STAR_FRAMES_NUM, 0.1f);
 }
