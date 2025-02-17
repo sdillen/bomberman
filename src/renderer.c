@@ -19,7 +19,7 @@ static Texture2D arrowTexture;
 static Texture2D mapTexture;
 
 // Items
-static Texture2D boxTexture;
+static Texture2D crateTexture;
 Texture2D *starFrames;
 Animation *starAnimation;
 
