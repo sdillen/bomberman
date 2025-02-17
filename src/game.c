@@ -250,18 +250,21 @@ void UpdatePlayerState(Player *player, PlayerState state) {
 void PlantBomb(Player *player) {
   for (int i = 0; i < player->bombs; i++) {
     if (player->bombList[i] == NULL) {
-      LOG_INFO("Bomb planted", NULL);
-      player->bombList[i] = (Bomb *)malloc(sizeof(Bomb));
-      player->bombList[i]->entity.position = player->entity.position;
-      updateCell(player->entity.position, CELL_BOMB);
-      player->bombList[i]->startTime = GetTime();
-      player->bombList[i]->endTime = player->bombList[i]->startTime + 3;
-      player->bombList[i]->animation =
-          CreateAnimation(bombSparkFrames, BOMB_SPARK_FRAMES_NUM, 0.1f);
-      for (int j = 0; j < _DIRECTION_NUM; j++) {
-        player->bombList[i]->explosion[j] = NULL;
+      if (game->grid[player->entity.position.x][player->entity.position.y]
+              .type != CELL_BOMB) {
+        LOG_INFO("Bomb planted", NULL);
+        player->bombList[i] = (Bomb *)malloc(sizeof(Bomb));
+        player->bombList[i]->entity.position = player->entity.position;
+        updateCell(player->entity.position, CELL_BOMB);
+        player->bombList[i]->startTime = GetTime();
+        player->bombList[i]->endTime = player->bombList[i]->startTime + 3;
+        player->bombList[i]->animation =
+            CreateAnimation(bombSparkFrames, BOMB_SPARK_FRAMES_NUM, 0.1f);
+        for (int j = 0; j < _DIRECTION_NUM; j++) {
+          player->bombList[i]->explosion[j] = NULL;
+        }
+        break;
       }
-      break;
     }
   }
 };
