@@ -23,7 +23,7 @@ int main() {
   if (getenv("DEBUG")) {
     currentLogLevel = LOG_LEVEL_DEBUG;
     LOG_DEBUG("Set log level to debbuging", NULL);
-    SetTargetFPS(5);
+    // SetTargetFPS(5);
   }
 
   LOG_DEBUG("InitGame", NULL);

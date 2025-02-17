@@ -22,11 +22,15 @@ Position getSpawn(int id);
 void updateCell(Position position, CellType cellType);
 _Bool isCollision(Position next);
 
+// Position functions
+_Bool isEqPos(Position p1, Position p2);
+
 // Player functions
 Player *initPlayer(int id);
 
 // Bomb
 void createExplosion(Bomb *bomb, int blastRadius);
+Bomb *getBomb(Position pos);
 
 // Destructible
 void breakDestructibel(Position pos);
@@ -155,6 +159,13 @@ _Bool isCollision(Position next) {
   return 1;
 }
 
+_Bool isEqPos(Position p1, Position p2) {
+  if (p1.x == p2.x && p1.y == p2.y) {
+    return 1;
+  }
+  return 0;
+}
+
 Player *initPlayer(int id) {
   Player *player = (Player *)malloc(sizeof(Player));
   if (player == NULL) {
@@ -242,6 +253,7 @@ void PlantBomb(Player *player) {
       LOG_INFO("Bomb planted", NULL);
       player->bombList[i] = (Bomb *)malloc(sizeof(Bomb));
       player->bombList[i]->entity.position = player->entity.position;
+      updateCell(player->entity.position, CELL_BOMB);
       player->bombList[i]->startTime = GetTime();
       player->bombList[i]->endTime = player->bombList[i]->startTime + 3;
       player->bombList[i]->animation =
@@ -262,6 +274,7 @@ void UpdateBombTimer(Player *player) {
         createExplosion(player->bombList[i], player->blastRadius);
         bomb->startTime = 0;
         bomb->endTime = 0;
+        updateCell(bomb->entity.position, CELL_EMPTY);
       }
     }
   }
@@ -344,13 +357,18 @@ void updateExplosionProgress(Player *player) {
                   breakDestructibel(cellPos);
                   bomb->explosion[j] = NULL;
                   break;
-                  //  explosion->entity.progress = 1;
                 }
                 if (cell.type == CELL_SOLID_WALL) {
                   bomb->explosion[j] = NULL;
                   break;
-                  //  explosion->entity.progress = 1;
                 }
+                if (cell.type == CELL_BOMB) {
+                  Bomb *otherBomb = getBomb(cellPos);
+                  if (otherBomb != NULL) {
+                    LOG_INFO("trigger Bomb: %d.%d", cellPos.x, cellPos.y);
+                    otherBomb->endTime = GetTime();
+                  }
+                };
                 for (int l = 0; l < MAX_PLAYERS; l++) {
                   Player *player = game->player[l];
                   if (player->entity.position.x == cellPos.x &&
@@ -385,11 +403,26 @@ void checkPlayerAlive(Player *player) {
 }
 
 void breakDestructibel(Position pos) {
-  if ((rand() % 10) <= 1) {
+  if ((rand() % 10) < 2) {
     updateCell(pos, CELL_POWERUP);
   } else {
     updateCell(pos, CELL_EMPTY);
   }
+}
+
+Bomb *getBomb(Position pos) {
+  for (int i = 0; i < MAX_PLAYERS; i++) {
+    Player *player = game->player[i];
+    for (int j = 0; j < player->bombs; j++) {
+      Bomb *bomb = player->bombList[j];
+      if (bomb != NULL) {
+        if (isEqPos(pos, bomb->entity.position)) {
+          return bomb;
+        }
+      }
+    }
+  }
+  return NULL;
 }
 
 void checkPlayerOnPowerUp(Player *player) {

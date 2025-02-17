@@ -45,6 +45,7 @@ typedef enum {
   CELL_EMPTY,
   CELL_SOLID_WALL,
   CELL_DESTRUCTIBLE,
+  CELL_BOMB,
   CELL_POWERUP,
 } CellType;
 
