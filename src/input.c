@@ -25,10 +25,10 @@ void HandleInput(Game *game) {
     };
     break;
   case CHAR_SELECT_MENU:
-    if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_RIGHT)) {
+    if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT)) {
       PrevChar(game);
     }
-    if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_LEFT)) {
+    if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) {
       NextChar(game);
     }
     if (IsKeyPressed(KEY_ENTER)) {
