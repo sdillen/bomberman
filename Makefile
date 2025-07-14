@@ -3,7 +3,7 @@
 CC = clang
 
 CFLAGS = -Wall
-CFLAGS += -isystem /nix/store/bvxjdpr4zq9r4a951340wn8h35xh02vb-clang-19.1.4-lib/lib/clang/19/include
+CFLAGS += -isystem /nix/store/bvxjdpr4zq9r4a951340wn8h35xh02vb-clang-19.1.7-lib/lib/clang/19/include
 CFLAGS += ${NIX_LDFLAGS} ${NIX_CFLAGS_COMPILE}
 CFLAGS += -lraylib
 
