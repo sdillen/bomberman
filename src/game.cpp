@@ -1,4 +1,5 @@
 #include "game.hpp"
+#include "bot_controller.hpp"
 #include "input_handler.hpp"
 #include "logger.hpp"
 #include "renderer.hpp"
@@ -164,6 +165,8 @@ void runningState(Game *game) {
     UpdateGameState(game, GameStateType::PauseMenu);
   }
 
+  BotController::updateAll(game->playerManager, game->bombManager,
+                           game->grid, game->deltaTime, GetTime());
   game->playerManager.updateMovement(game->deltaTime);
   game->bombManager.updateAll(game->playerManager, game->deltaTime,
                               game->grid, rng);
