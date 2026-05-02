@@ -1,30 +1,31 @@
-#include "input.h"
-#include "game.h"
-#include "log.h"
+#include "input.hpp"
+#include "game.hpp"
+#include "log.hpp"
 #include <raylib.h>
-#include <string.h>
+#include <cstring>
 
 void HandleInput(Game *game) {
   if (WindowShouldClose()) {
-    LOG_INFO("Close window", NULL);
-    UpdateGameState(game, EXIT);
+    LOG_INFO("Close window", nullptr);
+    UpdateGameState(game, GameStateType::Exit);
   }
+  Player *player = game->player[0].get();
   switch (game->state) {
-  case MAIN_MENU:
+  case GameStateType::MainMenu:
     if (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP)) {
-      LOG_INFO("Menu move up", NULL);
+      LOG_INFO("Menu move up", nullptr);
       MenuMoveUp(game);
     };
     if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_DOWN)) {
-      LOG_INFO("Menu move down", NULL);
+      LOG_INFO("Menu move down", nullptr);
       MenuMoveDown(game);
     };
     if (IsKeyPressed(KEY_ENTER)) {
-      LOG_INFO("Menu select option", NULL);
+      LOG_INFO("Menu select option", nullptr);
       MenuSelectOption(game);
     };
     break;
-  case CHAR_SELECT_MENU:
+  case GameStateType::CharSelectMenu:
     if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT)) {
       PrevChar(game);
     }
@@ -35,39 +36,38 @@ void HandleInput(Game *game) {
       SelectChar(game);
     }
     break;
-  case RUNNING_COUNTDOWN:
+  case GameStateType::RunningCountdown:
     break;
-  case RUNNING:
-    Player *player = game->player[0];
+  case GameStateType::Running:
     if (player->isAlive) {
       if (IsKeyPressed(KEY_W) || IsKeyDown(KEY_W)) {
-        MovePlayer(player, NORTH);
+        MovePlayer(player, Direction::North, game);
       };
       if (IsKeyPressed(KEY_S) || IsKeyDown(KEY_S)) {
-        MovePlayer(player, SOUTH);
+        MovePlayer(player, Direction::South, game);
       };
       if (IsKeyPressed(KEY_A) || IsKeyDown(KEY_A)) {
-        MovePlayer(player, WEST);
+        MovePlayer(player, Direction::West, game);
       };
       if (IsKeyPressed(KEY_D) || IsKeyDown(KEY_D)) {
-        MovePlayer(player, EAST);
+        MovePlayer(player, Direction::East, game);
       };
       if (IsKeyPressed(KEY_SPACE)) {
-        PlantBomb(player);
+        PlantBomb(player, game);
       };
       if (IsKeyPressed(KEY_P)) {
-        LOG_INFO("Switch pause state", NULL);
+        LOG_INFO("Switch pause state", nullptr);
         PauseSwitchState(game);
       };
     }
     break;
-  case PAUSE_MENU:
+  case GameStateType::PauseMenu:
     if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_P)) {
-      LOG_INFO("Switch pause state", NULL);
+      LOG_INFO("Switch pause state", nullptr);
       PauseSwitchState(game);
     };
     break;
-  case EXIT:
+  case GameStateType::Exit:
     break;
   }
 }
