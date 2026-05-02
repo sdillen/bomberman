@@ -17,7 +17,7 @@ bool BombManager::plantBomb(Player &owner, Grid &grid,
   }
   LOG_INFO("Bomb planted", nullptr);
   grid.setCell(pos, CellType::Bomb);
-  auto bomb = std::make_unique<Bomb>(pos, owner.getBlastRadius(), currentTime);
+  auto bomb = std::make_unique<Bomb>(pos, owner.getBlastRadius(), currentTime, owner.getId());
   bomb->setAnimation(
       std::make_unique<Animation>(SharedFramesTag{}, Renderer::getBombSparkFrames(), 0.1f));
   bombs_.push_back(std::move(bomb));
@@ -157,7 +157,7 @@ Bomb *BombManager::findBomb(Position pos) const {
 int BombManager::getBombCountForPlayer(int playerId) const {
   int count = 0;
   for (auto &bomb : bombs_) {
-    if (bomb != nullptr) count++;
+    if (bomb != nullptr && bomb->getOwnerId() == playerId) count++;
   }
   return count;
 }

@@ -7,9 +7,10 @@
 
 class Bomb {
 public:
-  Bomb(Position pos, int blastRadius, double currentTime);
+  Bomb(Position pos, int blastRadius, double currentTime, int ownerId);
 
   Position getPosition() const { return position_; }
+  int getOwnerId() const { return ownerId_; }
   double getEndTime() const { return endTime_; }
   double getStartTime() const { return startTime_; }
   bool isExploded() const { return isExploded_; }
@@ -34,6 +35,7 @@ private:
   double endTime_;
   double startTime_;
   int blastRadius_;
+  int ownerId_;
   bool isExploded_{};
   std::array<std::unique_ptr<Explosion>, kDirectionCount> explosions_;
   std::unique_ptr<Animation> animation_;
