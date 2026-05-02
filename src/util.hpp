@@ -1,14 +1,13 @@
-#ifndef UTIL_H
-#define UTIL_H
+#pragma once
 #include <raylib.h>
+#include <vector>
 
-typedef struct {
-  Texture2D *frames;
-  int numFrames;
+struct Animation {
+  std::vector<Texture2D> frames;
   float frameSpeed;
   int currentFrame;
   float elapsedTime;
-} Animation;
+};
 
 float Lerp(float start, float end, float t);
-#endif // UTIL_H
+

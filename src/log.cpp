@@ -1,19 +1,19 @@
-#include "log.h"
-#include <stdarg.h>
-#include <stdio.h>
-#include <time.h>
+#include "log.hpp"
+#include <cstdarg>
+#include <cstdio>
+#include <ctime>
 
-LogLevel currentLogLevel = LOG_LEVEL_INFO;
+LogLevel currentLogLevel = LogLevel::Info;
 
 const char *log_level_to_string(LogLevel level) {
   switch (level) {
-  case LOG_LEVEL_DEBUG:
+  case LogLevel::Debug:
     return "DEBUG";
-  case LOG_LEVEL_INFO:
+  case LogLevel::Info:
     return "INFO";
-  case LOG_LEVEL_WARN:
+  case LogLevel::Warn:
     return "WARN";
-  case LOG_LEVEL_ERROR:
+  case LogLevel::Error:
     return "ERROR";
   }
 }
