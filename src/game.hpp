@@ -1,9 +1,11 @@
 #pragma once
-#include "util.hpp"
+#include "animation.hpp"
+#include "grid.hpp"
+#include "player.hpp"
+#include "player_manager.hpp"
+#include "bomb_manager.hpp"
 #include <raylib.h>
 #include <memory>
-#include <vector>
-#include <array>
 #include <functional>
 #include <string>
 
@@ -21,11 +23,6 @@ struct Game;
 constexpr int kMenuOptions = 2;
 constexpr int kPauseOptions = 1;
 constexpr int kCharacters = 18;
-constexpr int kGridWidth = 15;
-constexpr int kGridHeight = 15;
-constexpr int kMaxPlayers = 4;
-constexpr int kDirectionCount = 4;
-constexpr int kPlayerStateCount = 4;
 constexpr int kPowerUpCount = 3;
 
 struct MainMenu {
@@ -46,18 +43,6 @@ struct CharSelectMenu {
   bool next{};
 };
 
-enum class CellType {
-  Empty,
-  SolidWall,
-  Destructible,
-  Bomb,
-  PowerUp,
-};
-
-struct Cell {
-  CellType type{};
-};
-
 enum class PowerUpType {
   Speed,
   Bomb,
@@ -65,63 +50,7 @@ enum class PowerUpType {
 };
 
 struct PowerUp {
-  Animation *animation{};
-};
-
-struct Position {
-  int x{};
-  int y{};
-};
-
-enum class Direction {
-  North,
-  East,
-  South,
-  West,
-};
-
-struct Entity {
-  int id{};
-  Position position;
-  Position targetPosition;
-  float progress{};
-  Direction facing{};
-};
-
-struct Explosion {
-  Entity entity;
-  double startTime{};
-  float speed{};
-  Animation *animation{};
-};
-
-struct Bomb {
-  Entity entity;
-  double endTime;
-  double startTime;
-  bool isExploded;
-  std::array<std::unique_ptr<Explosion>, kDirectionCount> explosion;
-  Animation *animation;
-};
-
-
-
-enum class PlayerState {
-  Spawn,
-  Idle,
-  Walking,
-  Death,
-};
-
-struct Player {
-  Entity entity;
-  float speed;
-  bool isAlive;
-  PlayerState state;
-  std::vector<std::unique_ptr<Bomb>> bombList;
-  int bombs;
-  int blastRadius;
-  std::array<std::unique_ptr<Animation>, kPlayerStateCount> animation;
+  std::unique_ptr<Animation> animation;
 };
 
 struct Game {
@@ -133,8 +62,9 @@ struct Game {
   std::unique_ptr<CharSelectMenu> charSelectMenu;
   float countdown;
   float deltaTime;
-  Cell grid[kGridWidth][kGridHeight];
-  std::array<std::unique_ptr<Player>, kMaxPlayers> player;
+  PlayerManager playerManager;
+  BombManager bombManager;
+  Grid grid;
 };
 
 Game *InitGame();
@@ -157,11 +87,5 @@ void SelectChar(Game *game);
 // PauseMenu
 void PauseSwitchState(Game *game);
 
-// Player
-void MovePlayer(Player *player, Direction direction, Game *game);
-void UpdatePlayerPositionProgress(Player *player);
-void UpdatePlayerState(Player *player, PlayerState state);
 
-// Bomb
-void PlantBomb(Player *player, Game *game);
 

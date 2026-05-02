@@ -1,5 +1,5 @@
 #include "game.hpp"
-#include "log.hpp"
+#include "logger.hpp"
 #include "renderer.hpp"
 #include <raylib.h>
 #include <cstdlib>
@@ -21,7 +21,7 @@ int main() {
   SetExitKey(KEY_NULL);
 
   if (getenv("DEBUG")) {
-    currentLogLevel = LogLevel::Debug;
+    Logger::setLevel(LogLevel::Debug);
     LOG_DEBUG("Set log level to debbuging", nullptr);
     // SetTargetFPS(5);
   }
@@ -29,13 +29,13 @@ int main() {
   LOG_DEBUG("InitGame", nullptr);
   Game *game = InitGame();
   LOG_DEBUG("InitRenderer", nullptr);
-  InitRenderer(game);
+  Renderer::init(game);
   LOG_DEBUG("GameLoop", nullptr);
   GameLoop(game);
   LOG_DEBUG("DestroyGame", nullptr);
   DestroyGame(game);
   LOG_DEBUG("UnloadRenderer", nullptr);
-  UnloadRenderer();
+  Renderer::unload();
   LOG_DEBUG("CloseWindow", nullptr);
   CloseWindow();
   return 0;
