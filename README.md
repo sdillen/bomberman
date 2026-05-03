@@ -17,8 +17,8 @@ It is inspired by a flash game I used to play as a kid [Bomberpengu](https://bom
 
 ## Features
 
-- [ ] Enemy AI
-- [ ] Multiplayer
+- [x] Enemy AI
+- [x] Multiplayer
 - [x] Bombs
 - [x] Countdown Screen
 - [x] Player Movement
