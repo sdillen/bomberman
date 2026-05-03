@@ -45,7 +45,7 @@ Texture2D Renderer::crateTexture_{};
 Texture2D Renderer::bombTexture_{};
 
 void Renderer::init(Game *game) {
-  LOG_DEBUG("Load static textures", nullptr);
+  LOG_DEBUG("Load static textures");
   raylibLogo_ = LoadTexture("assets/raylib_logo.png");
   arrowTexture_ = LoadTexture("assets/ui/arrow.png");
   mapTexture_ = LoadTexture("assets/map.png");
@@ -58,7 +58,7 @@ void Renderer::init(Game *game) {
     game->charSelectMenu->charTexture[i] = LoadTexture(path);
   }
 
-  LOG_DEBUG("Load static frames", nullptr);
+  LOG_DEBUG("Load static frames");
   starFrames_ = loadFrames(starFiles, kStarFramesNum);
   bombSparkFrames_ = loadFrames(bombSparkFiles, kBombSparkFramesNum);
   explosionBlastFrames_ =
@@ -80,58 +80,58 @@ void Renderer::unload() {
 }
 
 void Renderer::render(const Game *game) {
-  LOG_DEBUG("Render", nullptr);
+  LOG_DEBUG("Render");
   BeginDrawing();
   ClearBackground(kBackgroundColor);
   switch (game->state) {
   case GameStateType::MainMenu:
-    LOG_DEBUG("Render: renderMainMenu", nullptr);
+    LOG_DEBUG("Render: renderMainMenu");
     renderMainMenu(game);
     break;
   case GameStateType::HostGameMenu:
-    LOG_DEBUG("Render: renderHostGameMenu", nullptr);
+    LOG_DEBUG("Render: renderHostGameMenu");
     renderHostGameMenu(game);
     break;
   case GameStateType::JoinGameMenu:
-    LOG_DEBUG("Render: renderJoinGameMenu", nullptr);
+    LOG_DEBUG("Render: renderJoinGameMenu");
     renderJoinGameMenu(game);
     break;
   case GameStateType::RunningCountdown:
-    LOG_DEBUG("Render: renderRunning", nullptr);
+    LOG_DEBUG("Render: renderRunning");
     renderRunning(game);
-    LOG_DEBUG("Render: renderRunningCountdown", nullptr);
+    LOG_DEBUG("Render: renderRunningCountdown");
     renderRunningCountdown(game);
     break;
   case GameStateType::CharSelectMenu:
-    LOG_DEBUG("Reder: renderCharSelectMenu", nullptr);
+    LOG_DEBUG("Render: renderCharSelectMenu");
     renderCharSelectMenu(game);
     break;
   case GameStateType::ClientCharSelect:
-    LOG_DEBUG("Render: renderCharSelectMenu", nullptr);
+    LOG_DEBUG("Render: renderCharSelectMenu");
     renderCharSelectMenu(game);
     break;
   case GameStateType::Running:
-    LOG_DEBUG("Render: renderRunning", nullptr);
+    LOG_DEBUG("Render: renderRunning");
     renderRunning(game);
     break;
   case GameStateType::ClientRunning:
-    LOG_DEBUG("Render: renderRunning", nullptr);
+    LOG_DEBUG("Render: renderRunning");
     renderRunning(game);
     if (game->clientCountdown > 0) {
-      LOG_DEBUG("Render: renderRunningCountdown", nullptr);
+      LOG_DEBUG("Render: renderRunningCountdown");
       renderRunningCountdown(game);
     }
     break;
   case GameStateType::GameOver:
-    LOG_DEBUG("Render: renderRunning", nullptr);
+    LOG_DEBUG("Render: renderRunning");
     renderRunning(game);
-    LOG_DEBUG("Render: renderGameOver", nullptr);
+    LOG_DEBUG("Render: renderGameOver");
     renderGameOver(game);
     break;
   case GameStateType::PauseMenu:
-    LOG_DEBUG("Render: renderRunning", nullptr);
+    LOG_DEBUG("Render: renderRunning");
     renderRunning(game);
-    LOG_DEBUG("Render: renderPauseMenu", nullptr);
+    LOG_DEBUG("Render: renderPauseMenu");
     renderPauseMenu(game);
     break;
   case GameStateType::Exit:
@@ -163,64 +163,51 @@ std::vector<Texture2D> Renderer::loadFrames(const char *fileNames[],
   return frames;
 }
 
-int Renderer::getCharAnimationFiles(const char *file_names[], int num_frames,
-                                     PlayerState state, int char_id) {
+std::vector<std::string> Renderer::getCharAnimationFiles(PlayerState state,
+                                                          int char_id,
+                                                          int num_frames) {
+  std::vector<std::string> file_names;
+  file_names.reserve(num_frames);
   for (int i = 0; i < num_frames; i++) {
-    char *path = new char[256];
-    char str[] = "assets/characters/%02d/%s/sprite_%03d.png";
+    char buf[256];
+    const char *anim_name;
     switch (state) {
-    case PlayerState::Spawn:
-      sprintf(path, str, char_id, "spawn", i);
-      file_names[i] = path;
-      continue;
-    case PlayerState::Idle:
-      sprintf(path, str, char_id, "idle", i);
-      file_names[i] = path;
-      continue;
-    case PlayerState::Walking:
-      sprintf(path, str, char_id, "walking", i);
-      file_names[i] = path;
-      continue;
-    case PlayerState::Death:
-      sprintf(path, str, char_id, "death", i);
-      file_names[i] = path;
-      continue;
+    case PlayerState::Spawn:  anim_name = "spawn"; break;
+    case PlayerState::Idle:   anim_name = "idle"; break;
+    case PlayerState::Walking: anim_name = "walking"; break;
+    case PlayerState::Death:  anim_name = "death"; break;
     default:
-      return 1;
+      return {};
     }
+    snprintf(buf, sizeof(buf), "assets/characters/%02d/%s/sprite_%03d.png",
+             char_id, anim_name, i);
+    file_names.emplace_back(buf);
   }
-  return 0;
+  return file_names;
 }
 
 void Renderer::loadCharacterAnimation(Player *player, PlayerState state,
                                        int char_id) {
   int num_frames;
   switch (state) {
-  case PlayerState::Spawn:
-    num_frames = kCharacterSpawnFramesNum;
-    break;
-  case PlayerState::Idle:
-    num_frames = kCharacterIdleFramesNum;
-    break;
-  case PlayerState::Walking:
-    num_frames = kCharacterWalkingFramesNum;
-    break;
-  case PlayerState::Death:
-    num_frames = kCharacterDeathFramesNum;
-    break;
-  default:
-    num_frames = 0;
-    break;
+  case PlayerState::Spawn:  num_frames = kCharacterSpawnFramesNum; break;
+  case PlayerState::Idle:   num_frames = kCharacterIdleFramesNum; break;
+  case PlayerState::Walking: num_frames = kCharacterWalkingFramesNum; break;
+  case PlayerState::Death:  num_frames = kCharacterDeathFramesNum; break;
+  default: return;
   }
-  const char **file_names = new const char *[num_frames];
-  getCharAnimationFiles(file_names, num_frames, state, char_id);
-  auto frames = loadFrames(file_names, num_frames);
+  auto file_names = getCharAnimationFiles(state, char_id, num_frames);
+  std::vector<Texture2D> frames;
+  frames.reserve(num_frames);
+  for (const auto &fn : file_names) {
+    Texture2D texture = LoadTexture(fn.c_str());
+    if (texture.id == 0) {
+      LOG_ERROR("Failed to load texture: %s", fn.c_str());
+    }
+    frames.push_back(texture);
+  }
   player->setAnimation(
       state, std::make_unique<Animation>(std::move(frames), 0.1f));
-  for (int i = 0; i < num_frames; i++) {
-    delete[] file_names[i];
-  }
-  delete[] file_names;
 }
 
 void Renderer::setCharAnimationSet(int char_id, Player *player) {
@@ -381,7 +368,7 @@ void Renderer::renderCharSelectMenu(const Game *game) {
 void Renderer::renderRunningCountdown(const Game *game) {
   int fontSize = kTileSize;
   int screenWidth = GetScreenWidth();
-  int maxTileHeight = GetScreenHeight() % kTileSize;
+  int maxTileHeight = GetScreenHeight() / kTileSize;
   Color overlayColor = Fade(kBackgroundColor, 0.5f);
   DrawRectangle(0, 0, screenWidth, GetScreenHeight(), overlayColor);
   drawCenteredText("Countdown", kTileSize, fontSize, WHITE);
@@ -394,17 +381,18 @@ void Renderer::renderRunningCountdown(const Game *game) {
 }
 
 void Renderer::renderRunning(const Game *game) {
-  LOG_DEBUG("renderRunning: renderStats", nullptr);
+  LOG_DEBUG("renderRunning: renderStats");
   renderStats(game);
-  LOG_DEBUG("renderRunning: renderMap", nullptr);
+  LOG_DEBUG("renderRunning: renderMap");
   renderMap(game);
-  LOG_DEBUG("renderRunning: renderItems", nullptr);
+  starAnimation_->update(game->deltaTime);
+  LOG_DEBUG("renderRunning: renderItems");
   renderItems(game);
-  LOG_DEBUG("renderRunning: renderBombs", nullptr);
+  LOG_DEBUG("renderRunning: renderBombs");
   renderBombs(game);
-  LOG_DEBUG("renderRunning: renderPlayer", nullptr);
+  LOG_DEBUG("renderRunning: renderPlayer");
   renderPlayer(game);
-  LOG_DEBUG("renderRunning: renderExplosions", nullptr);
+  LOG_DEBUG("renderRunning: renderExplosions");
   renderExplosions(game);
 }
 
@@ -646,7 +634,7 @@ void Renderer::renderItems(const Game *game) {
         break;
       case CellType::PowerUp:
         starAnimation_->draw(position, WHITE);
-        starAnimation_->update(game->deltaTime);
+        break;
       default:
         break;
       }

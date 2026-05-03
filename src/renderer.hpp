@@ -2,6 +2,7 @@
 #include "game.hpp"
 #include <raylib.h>
 #include <memory>
+#include <string>
 #include <vector>
 
 constexpr int kStarFramesNum = 7;
@@ -58,8 +59,9 @@ private:
                                 Color color);
   static void renderPlayerAnimation(Animation *animation, Rectangle source,
                                      Rectangle dest, float deltaTime);
-  static int getCharAnimationFiles(const char *file_names[], int num_frames,
-                                    PlayerState state, int char_id);
+  static std::vector<std::string> getCharAnimationFiles(PlayerState state,
+                                                         int char_id,
+                                                         int num_frames);
   static void loadCharacterAnimation(Player *player, PlayerState state,
                                       int char_id);
 };
