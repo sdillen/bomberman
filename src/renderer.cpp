@@ -1,11 +1,13 @@
 #include "renderer.hpp"
 #include "game.hpp"
 #include "logger.hpp"
+#include "network_manager.hpp"
 #include "animation.hpp"
 #include "util.hpp"
 #include <raylib.h>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 
 constexpr int kTileSize = 32;
 constexpr Color kBackgroundColor = {30, 30, 30, 255};
@@ -86,6 +88,14 @@ void Renderer::render(const Game *game) {
     LOG_DEBUG("Render: renderMainMenu", nullptr);
     renderMainMenu(game);
     break;
+  case GameStateType::HostGameMenu:
+    LOG_DEBUG("Render: renderHostGameMenu", nullptr);
+    renderHostGameMenu(game);
+    break;
+  case GameStateType::JoinGameMenu:
+    LOG_DEBUG("Render: renderJoinGameMenu", nullptr);
+    renderJoinGameMenu(game);
+    break;
   case GameStateType::RunningCountdown:
     LOG_DEBUG("Render: renderRunning", nullptr);
     renderRunning(game);
@@ -96,9 +106,27 @@ void Renderer::render(const Game *game) {
     LOG_DEBUG("Reder: renderCharSelectMenu", nullptr);
     renderCharSelectMenu(game);
     break;
+  case GameStateType::ClientCharSelect:
+    LOG_DEBUG("Render: renderCharSelectMenu", nullptr);
+    renderCharSelectMenu(game);
+    break;
   case GameStateType::Running:
     LOG_DEBUG("Render: renderRunning", nullptr);
     renderRunning(game);
+    break;
+  case GameStateType::ClientRunning:
+    LOG_DEBUG("Render: renderRunning", nullptr);
+    renderRunning(game);
+    if (game->clientCountdown > 0) {
+      LOG_DEBUG("Render: renderRunningCountdown", nullptr);
+      renderRunningCountdown(game);
+    }
+    break;
+  case GameStateType::GameOver:
+    LOG_DEBUG("Render: renderRunning", nullptr);
+    renderRunning(game);
+    LOG_DEBUG("Render: renderGameOver", nullptr);
+    renderGameOver(game);
     break;
   case GameStateType::PauseMenu:
     LOG_DEBUG("Render: renderRunning", nullptr);
@@ -243,12 +271,85 @@ void Renderer::renderMainMenu(const Game *game) {
               (maxTileHeight - 4) * kTileSize, WHITE);
 }
 
+void Renderer::renderHostGameMenu(const Game *game) {
+  int fontSize = kTileSize;
+  int screenWidth = GetScreenWidth();
+  int screenHeight = GetScreenHeight();
+
+  drawCenteredText("LAN Host", kTileSize * 2, fontSize * 2, WHITE);
+
+  char buf[128];
+  sprintf(buf, "Server Port: %d", kServerPort);
+  drawCenteredText(buf, kTileSize * 5, fontSize, WHITE);
+
+  sprintf(buf, "Spieleranzahl: %d", game->hostPlayerCount);
+  drawCenteredText(buf, kTileSize * 7, fontSize, WHITE);
+  drawCenteredText("[<]  [>]", kTileSize * 8, fontSize / 2, GRAY);
+
+  sprintf(buf, "Verbunden: %d / %d", game->numConnectedClients,
+          game->hostPlayerCount - 1);
+  drawCenteredText(buf, kTileSize * 10, fontSize, WHITE);
+
+  if (game->numConnectedClients >= game->hostPlayerCount - 1) {
+    drawCenteredText("ENTER zum Starten", kTileSize * 12, fontSize, GREEN);
+  } else {
+    drawCenteredText("Warte auf Spieler...", kTileSize * 12, fontSize, GRAY);
+  }
+
+  DrawText("ESC - Zurueck", kTileSize, screenHeight - kTileSize, fontSize / 2,
+           WHITE);
+}
+
+void Renderer::renderJoinGameMenu(const Game *game) {
+  int fontSize = kTileSize;
+  int screenWidth = GetScreenWidth();
+  int screenHeight = GetScreenHeight();
+
+  drawCenteredText("LAN Beitreten", kTileSize * 2, fontSize * 2, WHITE);
+
+  drawCenteredText("IP-Adresse:", kTileSize * 5, fontSize, WHITE);
+
+  char ipDisplay[32];
+  sprintf(ipDisplay, "%s", game->serverIP);
+  if (strlen(game->serverIP) == 0) {
+    sprintf(ipDisplay, " ");
+  }
+  if (game->isConnecting) {
+    drawCenteredText("Verbinde...", kTileSize * 7, fontSize, YELLOW);
+  } else if (game->connectionFailed) {
+    drawCenteredText("Verbindung fehlgeschlagen!", kTileSize * 7, fontSize, RED);
+    drawCenteredText("ESC - Zurueck", kTileSize * 8, fontSize / 2, GRAY);
+  } else {
+    drawCenteredText(ipDisplay, kTileSize * 7, fontSize, SKYBLUE);
+    drawCenteredText("ENTER - Verbinden", kTileSize * 9, fontSize / 2, GRAY);
+  }
+
+  DrawText("ESC - Zurueck", kTileSize, screenHeight - kTileSize, fontSize / 2,
+           WHITE);
+}
+
 void Renderer::renderCharSelectMenu(const Game *game) {
   int fontSize = kTileSize;
   int screenWidth = GetScreenWidth();
-  DrawText(game->charSelectMenu->title.c_str(),
+
+  const char *title;
+  char titleBuf[64];
+  if (game->state == GameStateType::ClientCharSelect) {
+    if (game->currentSelectingPlayer > 0) {
+      sprintf(titleBuf, "Deine Wahl (Spieler %d)", game->currentSelectingPlayer);
+    } else {
+      sprintf(titleBuf, "Warte auf deine Auswahl...");
+    }
+    title = titleBuf;
+  } else if (game->isServer && game->currentSelectingPlayer > 0) {
+    sprintf(titleBuf, "Warte auf Spieler %d...", game->currentSelectingPlayer);
+    title = titleBuf;
+  } else {
+    title = game->charSelectMenu->title.c_str();
+  }
+  DrawText(title,
            screenWidth / 2 -
-               MeasureText(game->charSelectMenu->title.c_str(), fontSize) / 2,
+               MeasureText(title, fontSize) / 2,
            kTileSize * 2, fontSize, WHITE);
   int select = game->charSelectMenu->selectedOption;
   Texture2D texture = game->charSelectMenu->charTexture[select];
@@ -285,7 +386,10 @@ void Renderer::renderRunningCountdown(const Game *game) {
   DrawRectangle(0, 0, screenWidth, GetScreenHeight(), overlayColor);
   drawCenteredText("Countdown", kTileSize, fontSize, WHITE);
   char timerText[100];
-  sprintf(timerText, "%.0f", game->countdown);
+  float cd = (game->state == GameStateType::ClientRunning)
+                 ? game->clientCountdown
+                 : game->countdown;
+  sprintf(timerText, "%.0f", cd);
   drawCenteredText(timerText, maxTileHeight / 2 * kTileSize, fontSize * 4, RED);
 }
 
@@ -302,6 +406,26 @@ void Renderer::renderRunning(const Game *game) {
   renderPlayer(game);
   LOG_DEBUG("renderRunning: renderExplosions", nullptr);
   renderExplosions(game);
+}
+
+void Renderer::renderGameOver(const Game *game) {
+  int fontSize = kTileSize;
+  int screenWidth = GetScreenWidth();
+  int screenHeight = GetScreenHeight();
+  Color overlayColor = Fade(kBackgroundColor, 0.6f);
+  DrawRectangle(0, 0, screenWidth, screenHeight, overlayColor);
+
+  if (game->winnerId >= 0) {
+    char buf[64];
+    sprintf(buf, "Spieler %d gewinnt!", game->winnerId + 1);
+    drawCenteredText(buf, kTileSize * 3, fontSize * 2, GREEN);
+  } else if (game->winnerId == -2) {
+    drawCenteredText("Verbindung verloren!", kTileSize * 3, fontSize * 2, RED);
+  } else {
+    drawCenteredText("Unentschieden!", kTileSize * 3, fontSize * 2, YELLOW);
+  }
+
+  drawCenteredText("ENTER - Hauptmenue", kTileSize * 10, fontSize, WHITE);
 }
 
 void Renderer::renderPauseMenu(const Game *game) {
@@ -327,6 +451,8 @@ void Renderer::renderMap(const Game *game) {
 void Renderer::renderStats(const Game *game) {
   int fontSize = kTileSize;
   int screenWidth = GetScreenWidth();
+  int statsPlayerId = game->isClient ? game->clientPlayerId : 0;
+  if (statsPlayerId < 0) statsPlayerId = 0;
 
   char fpsText[100];
   sprintf(fpsText, "FPS: %i", GetFPS());
@@ -336,19 +462,20 @@ void Renderer::renderStats(const Game *game) {
 
   DrawRectangleLines(kTileSize, kTileSize, kTileSize * 7, kTileSize * 5, WHITE);
 
+  int rightIdx = 0;
   for (int i = 0; i < kMaxPlayers; i++) {
     auto *anim =
         game->playerManager.getPlayer(i)->getAnimation(PlayerState::Idle);
     if (!anim || anim->frames().empty()) continue;
     Texture2D characterTexture = anim->frames()[0];
     Rectangle source = (Rectangle){12, 12, 36, 36};
-    if (i == 0) {
+    if (i == statsPlayerId) {
       DrawTexturePro(characterTexture, source,
                      (Rectangle){kTileSize * 2 - 8, kTileSize * 2 - 8,
                                  kTileSize, kTileSize},
                      (Vector2){0, 0}, 0, WHITE);
     } else {
-      float x = screenWidth - kTileSize * i - 8;
+      float x = screenWidth - kTileSize * (rightIdx + 1) - 8;
       float y = kTileSize * 2 - 8;
       DrawTexturePro(characterTexture, source,
                      (Rectangle){x, y, kTileSize, kTileSize}, (Vector2){0, 0},
@@ -356,18 +483,20 @@ void Renderer::renderStats(const Game *game) {
       if (!game->playerManager.getPlayer(i)->isAlive()) {
         DrawLine(x, y, x + kTileSize, y + kTileSize, RED);
       }
+      rightIdx++;
     }
   }
 
+  const Player *statsPlayer = game->playerManager.getPlayer(statsPlayerId);
+
   char speedText[100];
-  sprintf(speedText, "Geschwindigkeit: %.0f",
-          game->playerManager.getPlayer(0)->getSpeed());
+  sprintf(speedText, "Geschwindigkeit: %.0f", statsPlayer->getSpeed());
   DrawText(speedText, kTileSize * 2, kTileSize * 3, fontSize / 2, WHITE);
 
   DrawText("Bomben:", kTileSize * 2, kTileSize * 4, fontSize / 2, WHITE);
   int textWidth = MeasureText("Bomben:", fontSize / 2);
-  int bombCount = game->playerManager.getPlayer(0)->getBombs();
-  int activeBombs = game->bombManager.getBombCountForPlayer(0);
+  int bombCount = statsPlayer->getBombs();
+  int activeBombs = game->bombManager.getBombCountForPlayer(statsPlayerId);
   for (int i = 0; i < bombCount; i++) {
     bool slotEmpty = i >= activeBombs;
     if (slotEmpty) {
@@ -382,7 +511,7 @@ void Renderer::renderStats(const Game *game) {
 
   char blastRadiusText[100];
   sprintf(blastRadiusText, "Explosionsradius: %i",
-          game->playerManager.getPlayer(0)->getBlastRadius());
+          statsPlayer->getBlastRadius());
   DrawText(blastRadiusText, kTileSize * 2, kTileSize * 5, fontSize / 2, WHITE);
 
   const char *explainControlsText =

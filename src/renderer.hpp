@@ -38,9 +38,12 @@ private:
                                             int numFrames);
 
   static void renderMainMenu(const Game *game);
+  static void renderHostGameMenu(const Game *game);
+  static void renderJoinGameMenu(const Game *game);
   static void renderCharSelectMenu(const Game *game);
   static void renderRunningCountdown(const Game *game);
   static void renderRunning(const Game *game);
+  static void renderGameOver(const Game *game);
   static void renderPauseMenu(const Game *game);
 
   static void renderStats(const Game *game);
