@@ -1,4 +1,5 @@
 #pragma once
+#include "grid.hpp"
 #include "packet.hpp"
 #include <enet/enet.h>
 #include <string>
@@ -39,6 +40,7 @@ public:
   static bool isServer() { return server_ != nullptr; }
   static bool isClient() { return client_ != nullptr && peer_ != nullptr; }
   static bool isConnected();
+  static void resetClientBombTracking();
 
   static int getNumConnectedPeers();
 
@@ -52,4 +54,8 @@ private:
                                      size_t &outLength, ENetPeer *&outSender);
   static void sendPacket(void *data, size_t size, ENetPeer *target,
                          uint8_t channel, bool reliable);
+
+  static Position prevBombPositions_[32];
+  static int prevBlastRadii_[32];
+  static int prevBombCount_;
 };

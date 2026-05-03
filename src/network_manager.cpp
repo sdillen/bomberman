@@ -12,17 +12,20 @@ ENetHost *NetworkManager::server_ = nullptr;
 ENetHost *NetworkManager::client_ = nullptr;
 ENetPeer *NetworkManager::peer_ = nullptr;
 bool NetworkManager::initialized_ = false;
+Position NetworkManager::prevBombPositions_[32] = {};
+int NetworkManager::prevBlastRadii_[32] = {};
+int NetworkManager::prevBombCount_ = 0;
 
 static std::vector<ENetPeer *> connectedPeers;
 
 bool NetworkManager::init() {
   if (initialized_) return true;
   if (enet_initialize() != 0) {
-    LOG_ERROR("ENet initialization failed", nullptr);
+    LOG_ERROR("ENet initialization failed");
     return false;
   }
   initialized_ = true;
-  LOG_INFO("ENet initialized", nullptr);
+  LOG_INFO("ENet initialized");
   return true;
 }
 
@@ -56,7 +59,7 @@ bool NetworkManager::startServer() {
 
   server_ = enet_host_create(&address, kMaxClients, 2, 0, 0);
   if (!server_) {
-    LOG_ERROR("Failed to create ENet server", nullptr);
+    LOG_ERROR("Failed to create ENet server");
     return false;
   }
   LOG_INFO("ENet server started on port %d", kServerPort);
@@ -76,7 +79,7 @@ bool NetworkManager::connectToServer(const std::string &address) {
 
   client_ = enet_host_create(nullptr, 1, 2, 0, 0);
   if (!client_) {
-    LOG_ERROR("Failed to create ENet client", nullptr);
+    LOG_ERROR("Failed to create ENet client");
     return false;
   }
 
@@ -86,7 +89,7 @@ bool NetworkManager::connectToServer(const std::string &address) {
 
   peer_ = enet_host_connect(client_, &addr, 2, 0);
   if (!peer_) {
-    LOG_ERROR("Failed to connect to server", nullptr);
+    LOG_ERROR("Failed to connect to server");
     enet_host_destroy(client_);
     client_ = nullptr;
     return false;
@@ -96,6 +99,7 @@ bool NetworkManager::connectToServer(const std::string &address) {
 }
 
 void NetworkManager::disconnect() {
+  resetClientBombTracking();
   if (peer_) {
     enet_peer_disconnect(peer_, 0);
     peer_ = nullptr;
@@ -104,6 +108,14 @@ void NetworkManager::disconnect() {
     enet_peer_disconnect(p, 0);
   }
   connectedPeers.clear();
+}
+
+void NetworkManager::resetClientBombTracking() {
+  prevBombCount_ = 0;
+  for (int i = 0; i < 32; i++) {
+    prevBombPositions_[i] = {};
+    prevBlastRadii_[i] = 0;
+  }
 }
 
 bool NetworkManager::isConnected() {
@@ -150,7 +162,7 @@ bool NetworkManager::receivePacketFromHost(ENetHost *host, uint8_t *&outData,
       return true;
     }
     if (event.type == ENET_EVENT_TYPE_DISCONNECT) {
-      LOG_INFO("receivePacketFromHost: DISCONNECT", nullptr);
+      LOG_INFO("receivePacketFromHost: DISCONNECT");
       if (server_) {
         for (auto it = connectedPeers.begin(); it != connectedPeers.end(); ++it) {
           if (*it == event.peer) { connectedPeers.erase(it); break; }
@@ -173,7 +185,7 @@ void NetworkManager::pollEvents() {
         connectedPeers.push_back(event.peer);
         break;
       case ENET_EVENT_TYPE_DISCONNECT:
-        LOG_INFO("Client disconnected", nullptr);
+        LOG_INFO("Client disconnected");
         for (auto it = connectedPeers.begin(); it != connectedPeers.end();
              ++it) {
           if (*it == event.peer) {
@@ -193,10 +205,10 @@ void NetworkManager::pollEvents() {
     while (enet_host_service(client_, &event, 0) > 0) {
       switch (event.type) {
       case ENET_EVENT_TYPE_CONNECT:
-        LOG_INFO("Connected to server", nullptr);
+        LOG_INFO("Connected to server");
         break;
       case ENET_EVENT_TYPE_DISCONNECT:
-        LOG_INFO("Disconnected from server", nullptr);
+        LOG_INFO("Disconnected from server");
         peer_ = nullptr;
         break;
       default:
@@ -230,7 +242,7 @@ void NetworkManager::sendCharSelect(uint8_t playerId, uint8_t charIndex,
       target = connectedPeers[0];
     }
     if (!target) {
-      LOG_INFO("sendCharSelect: no target peer!", nullptr);
+      LOG_INFO("sendCharSelect: no target peer!");
       return;
     }
   } else if (client_) {
@@ -356,7 +368,7 @@ bool NetworkManager::receiveCharSelect(uint8_t &outPlayerId,
                                         uint8_t &outCharIndex) {
   ENetHost *host = server_ ? server_ : client_;
   if (!host) {
-    LOG_INFO("receiveCharSelect: host is null", nullptr);
+    LOG_INFO("receiveCharSelect: host is null");
     return false;
   }
 
@@ -364,11 +376,11 @@ bool NetworkManager::receiveCharSelect(uint8_t &outPlayerId,
   size_t len;
   ENetPeer *sender;
   if (!receivePacketFromHost(host, data, len, sender)) {
-    LOG_DEBUG("receiveCharSelect: no packet from host", nullptr);
+    LOG_DEBUG("receiveCharSelect: no packet from host");
     return false;
   }
   if (len < sizeof(PacketHeader)) {
-    LOG_DEBUG("receiveCharSelect: packet too small for header", nullptr);
+    LOG_DEBUG("receiveCharSelect: packet too small for header");
     return false;
   }
   PacketHeader *hdr = reinterpret_cast<PacketHeader *>(data);
@@ -435,10 +447,6 @@ bool NetworkManager::receiveGameState(Game *game) {
     }
 
     {
-      static Position prevBombPositions[32];
-      static int prevBlastRadii[32];
-      static int prevCount = 0;
-
       Position newPositions[32];
       int newBlastRadii[32];
       int newCount = 0;
@@ -451,25 +459,25 @@ bool NetworkManager::receiveGameState(Game *game) {
         }
       }
 
-      for (int i = 0; i < prevCount; i++) {
+      for (int i = 0; i < prevBombCount_; i++) {
         bool stillExists = false;
         for (int j = 0; j < newCount; j++) {
-          if (prevBombPositions[i].x == newPositions[j].x &&
-              prevBombPositions[i].y == newPositions[j].y) {
+          if (prevBombPositions_[i].x == newPositions[j].x &&
+              prevBombPositions_[i].y == newPositions[j].y) {
             stillExists = true;
             break;
           }
         }
         if (!stillExists) {
-          game->bombManager.startLocalExplosion(prevBombPositions[i],
-                                                 prevBlastRadii[i],
+          game->bombManager.startLocalExplosion(prevBombPositions_[i],
+                                                 prevBlastRadii_[i],
                                                  game->grid);
         }
       }
 
-      std::memcpy(prevBombPositions, newPositions, sizeof(Position) * newCount);
-      std::memcpy(prevBlastRadii, newBlastRadii, sizeof(int) * newCount);
-      prevCount = newCount;
+      std::memcpy(prevBombPositions_, newPositions, sizeof(Position) * newCount);
+      std::memcpy(prevBlastRadii_, newBlastRadii, sizeof(int) * newCount);
+      prevBombCount_ = newCount;
 
       Position positions[32];
       int ownerIds[32], blastRadii[32];
