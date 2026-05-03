@@ -19,7 +19,8 @@ static Direction directionFromTo(Position from, Position to) {
 }
 
 void BotController::updateAll(PlayerManager& playerManager, BombManager& bombManager,
-                               Grid& grid, float deltaTime, double currentTime) {
+                               Grid& grid, float deltaTime, double currentTime,
+                               int numHumanPlayers) {
     if (!initialized_) {
         for (int i = 0; i < 3; i++) {
             botStates_[i].decisionTimer = static_cast<float>(std::rand() % 10) / 100.0f;
@@ -28,7 +29,9 @@ void BotController::updateAll(PlayerManager& playerManager, BombManager& bombMan
     }
 
     for (int i = 0; i < 3; i++) {
-        Player* player = playerManager.getPlayer(i + 1);
+        int playerId = i + 1;
+        if (playerId < numHumanPlayers) continue;
+        Player* player = playerManager.getPlayer(playerId);
         if (player != nullptr) {
             updateBot(i, *player, playerManager, bombManager, grid, deltaTime, currentTime);
         }

@@ -7,7 +7,8 @@
 class BotController {
 public:
     static void updateAll(PlayerManager& playerManager, BombManager& bombManager,
-                          Grid& grid, float deltaTime, double currentTime);
+                          Grid& grid, float deltaTime, double currentTime,
+                          int numHumanPlayers = 1);
 
 private:
     enum class GoalType {
