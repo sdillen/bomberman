@@ -15,6 +15,12 @@ public:
                  std::mt19937 &rng);
   Bomb *findBomb(Position pos) const;
   int getBombCountForPlayer(int playerId) const;
+  void clearAll();
+  void restoreBomb(Position pos, int ownerId, int blastRadius, double remainingTime);
+  void syncBombs(const Position positions[], int ownerIds[], int blastRadii[],
+                 double remainingTimes[], int count);
+  void startLocalExplosion(Position pos, int blastRadius, const Grid &grid);
+  void updateExplosions(float deltaTime);
 
   std::vector<std::unique_ptr<Bomb>> &getBombs() { return bombs_; }
   const std::vector<std::unique_ptr<Bomb>> &getBombs() const { return bombs_; }
