@@ -16,6 +16,7 @@ public:
   Position getTargetPosition() const { return targetPosition_; }
   Direction getDirection() const { return direction_; }
   float getProgress() const { return progress_; }
+  void setProgress(float p) { progress_ = p; }
   float getSpeed() const { return speed_; }
   double getStartTime() const { return startTime_; }
   Animation *getAnimation() const { return animation_.get(); }
