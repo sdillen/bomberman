@@ -11,16 +11,21 @@
 
 enum class GameStateType {
   MainMenu,
+  HostGameMenu,
+  JoinGameMenu,
   CharSelectMenu,
+  ClientCharSelect,
   RunningCountdown,
   Running,
+  ClientRunning,
+  GameOver,
   PauseMenu,
   Exit,
 };
 
 struct Game;
 
-constexpr int kMenuOptions = 2;
+constexpr int kMenuOptions = 4;
 constexpr int kPauseOptions = 1;
 constexpr int kCharacters = 18;
 constexpr int kPowerUpCount = 3;
@@ -65,6 +70,33 @@ struct Game {
   PlayerManager playerManager;
   BombManager bombManager;
   Grid grid;
+
+  // Netzwerk-Felder
+  bool isServer{};
+  bool isClient{};
+  int8_t clientPlayerId = -1;
+  int8_t numHumanPlayers = 2;
+  int numConnectedClients{};
+  char serverIP[16]{};
+
+  // Host-Menü
+  int hostPlayerCount = 2;
+
+  // Join-Menü
+  bool isConnecting{};
+  bool connectionFailed{};
+
+  // CharSelect (Netzwerk)
+  int currentSelectingPlayer{};
+  int charSelections[4]{};
+  int charSelectionCount{};
+
+  // Game Over
+  int winnerId = -1;
+  float gameOverTimer{};
+
+  // Client countdown
+  float clientCountdown{};
 };
 
 Game *InitGame();
