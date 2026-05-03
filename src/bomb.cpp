@@ -5,5 +5,5 @@ Bomb::Bomb(Position pos, int blastRadius, double currentTime, int ownerId)
       blastRadius_(blastRadius), ownerId_(ownerId) {}
 
 bool Bomb::isTimerExpired(double currentTime) const {
-  return endTime_ <= currentTime && endTime_ != 0;
+  return endTime_ < currentTime && endTime_ != 0;
 }
