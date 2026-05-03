@@ -1,5 +1,6 @@
 #include "game.hpp"
 #include "logger.hpp"
+#include "network_manager.hpp"
 #include "renderer.hpp"
 #include <raylib.h>
 #include <cstdlib>
@@ -26,6 +27,12 @@ int main() {
     // SetTargetFPS(5);
   }
 
+  if (!NetworkManager::init()) {
+    LOG_ERROR("Failed to initialize ENet", nullptr);
+    CloseWindow();
+    return 1;
+  }
+
   LOG_DEBUG("InitGame", nullptr);
   Game *game = InitGame();
   LOG_DEBUG("InitRenderer", nullptr);
@@ -38,5 +45,6 @@ int main() {
   Renderer::unload();
   LOG_DEBUG("CloseWindow", nullptr);
   CloseWindow();
+  NetworkManager::deinit();
   return 0;
 }
