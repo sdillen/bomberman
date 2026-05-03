@@ -24,7 +24,10 @@ void Player::move(Direction direction, const Grid &grid) {
   switch (direction) {
   case Direction::North:
     target.y -= 1;
-    if (!grid.isCollision(target)) targetPosition_ = target;
+    if (!grid.isCollision(target)) {
+      targetPosition_ = target;
+      facing_ = Direction::North;
+    }
     break;
   case Direction::East:
     target.x += 1;
@@ -35,7 +38,10 @@ void Player::move(Direction direction, const Grid &grid) {
     break;
   case Direction::South:
     target.y += 1;
-    if (!grid.isCollision(target)) targetPosition_ = target;
+    if (!grid.isCollision(target)) {
+      targetPosition_ = target;
+      facing_ = Direction::South;
+    }
     break;
   case Direction::West:
     target.x -= 1;

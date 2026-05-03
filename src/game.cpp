@@ -30,7 +30,7 @@ void collectPowerUp(Position pos, Player &player, Grid &grid,
 Game *InitGame() {
   Game *game = new Game{};
   if (game == nullptr) {
-    LOG_ERROR("Allocation of game failed!", nullptr);
+    LOG_ERROR("Allocation of game failed!");
   }
   game->title = "Bomberman";
   UpdateGameState(game, GameStateType::MainMenu);
@@ -65,47 +65,47 @@ void UpdateGameState(Game *game, GameStateType stateType) {
   game->state = stateType;
   switch (stateType) {
   case GameStateType::MainMenu:
-    LOG_DEBUG("game->state: mainMenuState", nullptr);
+    LOG_DEBUG("game->state: mainMenuState");
     game->stateFunction = mainMenuState;
     break;
   case GameStateType::HostGameMenu:
-    LOG_DEBUG("game->state: hostGameMenuState", nullptr);
+    LOG_DEBUG("game->state: hostGameMenuState");
     game->stateFunction = hostGameMenuState;
     break;
   case GameStateType::JoinGameMenu:
-    LOG_DEBUG("game->state: joinGameMenuState", nullptr);
+    LOG_DEBUG("game->state: joinGameMenuState");
     game->stateFunction = joinGameMenuState;
     break;
   case GameStateType::CharSelectMenu:
-    LOG_DEBUG("game->state: charSelectMenuState", nullptr);
+    LOG_DEBUG("game->state: charSelectMenuState");
     game->stateFunction = charSelectMenuState;
     break;
   case GameStateType::ClientCharSelect:
-    LOG_DEBUG("game->state: clientCharSelectState", nullptr);
+    LOG_DEBUG("game->state: clientCharSelectState");
     game->stateFunction = clientCharSelectState;
     break;
   case GameStateType::RunningCountdown:
-    LOG_DEBUG("game->state: runningCountdownState", nullptr);
+    LOG_DEBUG("game->state: runningCountdownState");
     game->stateFunction = runningCountdownState;
     break;
   case GameStateType::Running:
-    LOG_DEBUG("game->state: runningState", nullptr);
+    LOG_DEBUG("game->state: runningState");
     game->stateFunction = runningState;
     break;
   case GameStateType::ClientRunning:
-    LOG_DEBUG("game->state: clientRunningState", nullptr);
+    LOG_DEBUG("game->state: clientRunningState");
     game->stateFunction = clientRunningState;
     break;
   case GameStateType::GameOver:
-    LOG_DEBUG("game->state: gameOverState", nullptr);
+    LOG_DEBUG("game->state: gameOverState");
     game->stateFunction = gameOverState;
     break;
   case GameStateType::PauseMenu:
-    LOG_DEBUG("game->state: pauseState", nullptr);
+    LOG_DEBUG("game->state: pauseState");
     game->stateFunction = pauseState;
     break;
   case GameStateType::Exit:
-    LOG_DEBUG("game->state: exitState", nullptr);
+    LOG_DEBUG("game->state: exitState");
     game->stateFunction = exitState;
     break;
   }
@@ -230,7 +230,7 @@ void charSelectMenuState(Game *game) {
 }
 
 void runningCountdownState(Game *game) {
-  LOG_DEBUG("runningCountdownState", nullptr);
+  LOG_DEBUG("runningCountdownState");
   game->deltaTime = GetFrameTime();
   for (int i = 0; i < kMaxPlayers; i++) {
     Player *player = game->playerManager.getPlayer(i);
@@ -249,7 +249,7 @@ void runningCountdownState(Game *game) {
 }
 
 void runningState(Game *game) {
-  LOG_DEBUG("runnigState", nullptr);
+  LOG_DEBUG("runnigState");
   game->deltaTime = GetFrameTime();
   if (game->pauseMenu->isActive) {
     UpdateGameState(game, GameStateType::PauseMenu);
@@ -271,7 +271,7 @@ void runningState(Game *game) {
 
   BotController::updateAll(game->playerManager, game->bombManager,
                            game->grid, game->deltaTime, GetTime(),
-                           game->numHumanPlayers);
+                           game->numHumanPlayers, rng);
   game->playerManager.updateMovement(game->deltaTime);
   game->bombManager.updateAll(game->playerManager, game->deltaTime,
                               game->grid, rng);
@@ -339,14 +339,14 @@ void joinGameMenuState(Game *game) {
     if (NetworkManager::isConnected()) {
       game->connectionFailed = false;
       game->isConnecting = false;
-      LOG_INFO("Connected to server", nullptr);
+      LOG_INFO("Connected to server");
     }
   }
 
   if (NetworkManager::isConnected()) {
     game->isConnecting = false;
     game->connectionFailed = false;
-    LOG_INFO("Client: connected, going to char select", nullptr);
+    LOG_INFO("Client: connected, going to char select");
     UpdateGameState(game, GameStateType::ClientCharSelect);
   }
 }
@@ -370,6 +370,7 @@ void gameOverState(Game *game) {
     game->currentSelectingPlayer = 0;
     game->charSelectMenu->next = false;
     game->countdown = 3;
+    game->bombManager.clearAll();
     game->grid.init(rng);
     game->playerManager.initAll();
     UpdateGameState(game, GameStateType::MainMenu);
@@ -378,7 +379,7 @@ void gameOverState(Game *game) {
 
 void clientCharSelectState(Game *game) {
   if (!NetworkManager::isConnected()) {
-    LOG_INFO("Client: disconnected in char select", nullptr);
+    LOG_INFO("Client: disconnected in char select");
     game->winnerId = -2;
     game->gameOverTimer = 5.0f;
     UpdateGameState(game, GameStateType::GameOver);

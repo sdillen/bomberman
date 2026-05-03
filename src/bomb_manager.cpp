@@ -15,7 +15,7 @@ bool BombManager::plantBomb(Player &owner, Grid &grid,
   if (grid.getCell(pos).type == CellType::Bomb) {
     return false;
   }
-  LOG_INFO("Bomb planted", nullptr);
+  LOG_INFO("Bomb planted");
   grid.setCell(pos, CellType::Bomb);
   auto bomb = std::make_unique<Bomb>(pos, owner.getBlastRadius(), currentTime, owner.getId());
   bomb->setAnimation(
@@ -58,7 +58,7 @@ void BombManager::createExplosion(Bomb *bomb) {
   }
 }
 
-bool isEqPos(Position p1, Position p2) {
+static bool isEqPos(Position p1, Position p2) {
   return p1.x == p2.x && p1.y == p2.y;
 }
 
@@ -220,9 +220,9 @@ void BombManager::updateExplosions(float deltaTime) {
 }
 
 void BombManager::syncBombs(const Position positions[], int ownerIds[],
-                             int blastRadii[], double remainingTimes[],
-                             int count) {
-  bool matched[32] = {};
+                              int blastRadii[], double remainingTimes[],
+                              int count) {
+  std::vector<bool> matched(bombs_.size(), false);
   int maxExisting = static_cast<int>(bombs_.size());
 
   for (int i = 0; i < count; i++) {

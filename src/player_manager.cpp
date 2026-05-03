@@ -18,8 +18,12 @@ void PlayerManager::checkAllAlive() {
   }
 }
 
-Player *PlayerManager::getPlayer(int index) { return players_[index].get(); }
+Player *PlayerManager::getPlayer(int index) {
+  if (index < 0 || index >= kMaxPlayers) return nullptr;
+  return players_[index].get();
+}
 const Player *PlayerManager::getPlayer(int index) const {
+  if (index < 0 || index >= kMaxPlayers) return nullptr;
   return players_[index].get();
 }
 
