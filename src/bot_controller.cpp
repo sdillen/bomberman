@@ -5,7 +5,7 @@
 #include "player.hpp"
 #include <queue>
 #include <algorithm>
-#include <cstdlib>
+
 
 BotController::BotState BotController::botStates_[3];
 bool BotController::initialized_ = false;
@@ -20,10 +20,11 @@ static Direction directionFromTo(Position from, Position to) {
 
 void BotController::updateAll(PlayerManager& playerManager, BombManager& bombManager,
                                Grid& grid, float deltaTime, double currentTime,
-                               int numHumanPlayers) {
+                               int numHumanPlayers, std::mt19937& rng) {
     if (!initialized_) {
+        auto dist = std::uniform_int_distribution(0, 9);
         for (int i = 0; i < 3; i++) {
-            botStates_[i].decisionTimer = static_cast<float>(std::rand() % 10) / 100.0f;
+            botStates_[i].decisionTimer = static_cast<float>(dist(rng)) / 100.0f;
         }
         initialized_ = true;
     }
@@ -33,14 +34,14 @@ void BotController::updateAll(PlayerManager& playerManager, BombManager& bombMan
         if (playerId < numHumanPlayers) continue;
         Player* player = playerManager.getPlayer(playerId);
         if (player != nullptr) {
-            updateBot(i, *player, playerManager, bombManager, grid, deltaTime, currentTime);
+            updateBot(i, *player, playerManager, bombManager, grid, deltaTime, currentTime, rng);
         }
     }
 }
 
 void BotController::updateBot(int botIndex, Player& player, PlayerManager& playerManager,
                                BombManager& bombManager, Grid& grid, float deltaTime,
-                               double currentTime) {
+                               double currentTime, std::mt19937& rng) {
     if (!player.isAlive()) return;
     if (player.getState() != PlayerState::Idle) return;
 
@@ -81,7 +82,7 @@ void BotController::updateBot(int botIndex, Player& player, PlayerManager& playe
         return;
     }
 
-    state.decisionTimer = 0.15f + static_cast<float>(std::rand() % 5) * 0.01f;
+    state.decisionTimer = 0.15f + static_cast<float>(std::uniform_int_distribution(0, 4)(rng)) * 0.01f;
 
     if (isBombNearby(player, bombManager)) {
         return;
@@ -123,7 +124,7 @@ void BotController::updateBot(int botIndex, Player& player, PlayerManager& playe
     }
 
     if (state.path.empty()) {
-        randomMove(player, grid);
+        randomMove(player, grid, rng);
         return;
     }
 
@@ -143,8 +144,8 @@ bool BotController::isInDanger(const Player& player, const std::vector<Position>
     return false;
 }
 
-void BotController::randomMove(Player& player, const Grid& grid) {
-    int offset = std::rand() % 4;
+void BotController::randomMove(Player& player, const Grid& grid, std::mt19937& rng) {
+    int offset = std::uniform_int_distribution(0, 3)(rng);
     Direction dirs[] = {Direction::North, Direction::East, Direction::South, Direction::West};
 
     for (int i = 0; i < 4; i++) {
@@ -213,7 +214,7 @@ BotController::Goal BotController::findBombGoal(const Player& player,
     if (bombManager.getBombCountForPlayer(player.getId()) >= player.getBombs()) {
         return {};
     }
-    if (!hasEscapeRoute(player.getPosition(), grid)) {
+    if (!hasEscapeRoute(player.getPosition(), player.getBlastRadius(), grid)) {
         return {};
     }
     if (isAdjacentToEnemyOrWall(player, playerManager, grid)) {
@@ -306,13 +307,43 @@ BotController::Goal BotController::findExploreGoal(const Player& player,
     return {};
 }
 
-bool BotController::isBombNearby(const Player& player, const BombManager& bombManager) {
-    Position myPos = player.getPosition();
-    for (auto& bomb : bombManager.getBombs()) {
-        if (bomb == nullptr || bomb->isExploded()) continue;
-        Position bombPos = bomb->getPosition();
-        int dist = std::abs(myPos.x - bombPos.x) + std::abs(myPos.y - bombPos.y);
-        if (dist <= 6) return true;
+bool BotController::isBombNearby(const Player& player,
+                                  const BombManager& bombManager) {
+    Position start = player.getPosition();
+    bool visited[kGridWidth][kGridHeight] = {};
+    std::queue<Position> q;
+
+    constexpr int dx[] = {0, 1, 0, -1};
+    constexpr int dy[] = {-1, 0, 1, 0};
+
+    q.push(start);
+    visited[start.x][start.y] = true;
+
+    for (int depth = 0; depth <= 6 && !q.empty(); depth++) {
+        int levelSize = static_cast<int>(q.size());
+        for (int n = 0; n < levelSize; n++) {
+            Position cur = q.front();
+            q.pop();
+
+            for (auto &bomb : bombManager.getBombs()) {
+                if (bomb != nullptr && !bomb->isExploded() &&
+                    bomb->getPosition().x == cur.x &&
+                    bomb->getPosition().y == cur.y) {
+                    return true;
+                }
+            }
+
+            for (int i = 0; i < 4; i++) {
+                Position next = {cur.x + dx[i], cur.y + dy[i]};
+                if (next.x < 0 || next.x >= kGridWidth || next.y < 0 ||
+                    next.y >= kGridHeight)
+                    continue;
+                if (visited[next.x][next.y]) continue;
+
+                visited[next.x][next.y] = true;
+                q.push(next);
+            }
+        }
     }
     return false;
 }
@@ -431,14 +462,37 @@ bool BotController::isAdjacentToEnemyOrWall(const Player& player,
     return false;
 }
 
-bool BotController::hasEscapeRoute(Position pos, const Grid& grid) {
+bool BotController::hasEscapeRoute(Position pos, int blastRadius,
+                                    const Grid& grid) {
+    bool visited[kGridWidth][kGridHeight] = {};
+    std::queue<Position> q;
+    int distance[kGridWidth][kGridHeight] = {};
+
     constexpr int dx[] = {0, 1, 0, -1};
     constexpr int dy[] = {-1, 0, 1, 0};
 
-    for (int i = 0; i < 4; i++) {
-        Position adj = {pos.x + dx[i], pos.y + dy[i]};
-        if (adj.x < 0 || adj.x >= kGridWidth || adj.y < 0 || adj.y >= kGridHeight) continue;
-        if (!grid.isCollision(adj)) return true;
+    q.push(pos);
+    visited[pos.x][pos.y] = true;
+    distance[pos.x][pos.y] = 0;
+
+    while (!q.empty()) {
+        Position cur = q.front();
+        q.pop();
+
+        if (distance[cur.x][cur.y] >= blastRadius + 1) return true;
+
+        for (int i = 0; i < 4; i++) {
+            Position next = {cur.x + dx[i], cur.y + dy[i]};
+            if (next.x < 0 || next.x >= kGridWidth || next.y < 0 ||
+                next.y >= kGridHeight)
+                continue;
+            if (visited[next.x][next.y]) continue;
+            if (grid.isCollision(next)) continue;
+
+            visited[next.x][next.y] = true;
+            distance[next.x][next.y] = distance[cur.x][cur.y] + 1;
+            q.push(next);
+        }
     }
     return false;
 }

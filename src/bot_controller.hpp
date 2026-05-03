@@ -2,13 +2,14 @@
 #include "player_manager.hpp"
 #include "bomb_manager.hpp"
 #include "grid.hpp"
+#include <random>
 #include <vector>
 
 class BotController {
 public:
     static void updateAll(PlayerManager& playerManager, BombManager& bombManager,
                           Grid& grid, float deltaTime, double currentTime,
-                          int numHumanPlayers = 1);
+                          int numHumanPlayers, std::mt19937& rng);
 
 private:
     enum class GoalType {
@@ -37,7 +38,8 @@ private:
     static bool initialized_;
 
     static void updateBot(int botIndex, Player& player, PlayerManager& playerManager,
-                          BombManager& bombManager, Grid& grid, float deltaTime, double currentTime);
+                          BombManager& bombManager, Grid& grid, float deltaTime,
+                          double currentTime, std::mt19937& rng);
 
     static bool isInDanger(const Player& player, const std::vector<Position>& blastTiles);
     static std::vector<Position> findSafeFleeStep(const Player& player, const Grid& grid,
@@ -52,6 +54,6 @@ private:
     static std::vector<Position> findPath(const Grid& grid, Position start, Position goal);
     static std::vector<Position> getBlastTiles(const BombManager& bombManager, const Grid& grid);
     static bool isAdjacentToEnemyOrWall(const Player& player, const PlayerManager& playerManager, const Grid& grid);
-    static bool hasEscapeRoute(Position pos, const Grid& grid);
-    static void randomMove(Player& player, const Grid& grid);
+    static bool hasEscapeRoute(Position pos, int blastRadius, const Grid& grid);
+    static void randomMove(Player& player, const Grid& grid, std::mt19937& rng);
 };
