@@ -26,7 +26,7 @@ private:
   static const char *currentTimeStr();
 };
 
-#define LOG_DEBUG(format, ...) Logger::debug(format, __VA_ARGS__)
-#define LOG_INFO(format, ...) Logger::info(format, __VA_ARGS__)
-#define LOG_WARN(format, ...) Logger::warn(format, __VA_ARGS__)
-#define LOG_ERROR(format, ...) Logger::error(format, __VA_ARGS__)
+#define LOG_DEBUG(...) Logger::debug(__VA_ARGS__)
+#define LOG_INFO(...) Logger::info(__VA_ARGS__)
+#define LOG_WARN(...) Logger::warn(__VA_ARGS__)
+#define LOG_ERROR(...) Logger::error(__VA_ARGS__)

@@ -7,22 +7,22 @@
 
 void InputHandler::process(Game *game) {
   if (WindowShouldClose()) {
-    LOG_INFO("Close window", nullptr);
+    LOG_INFO("Close window");
     UpdateGameState(game, GameStateType::Exit);
   }
 
   switch (game->state) {
   case GameStateType::MainMenu:
     if (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP)) {
-      LOG_INFO("Menu move up", nullptr);
+      LOG_INFO("Menu move up");
       MenuMoveUp(game);
     }
     if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_DOWN)) {
-      LOG_INFO("Menu move down", nullptr);
+      LOG_INFO("Menu move down");
       MenuMoveDown(game);
     }
     if (IsKeyPressed(KEY_ENTER)) {
-      LOG_INFO("Menu select option", nullptr);
+      LOG_INFO("Menu select option");
       MenuSelectOption(game);
     }
     break;
@@ -141,7 +141,7 @@ void InputHandler::process(Game *game) {
         game->bombManager.plantBomb(*player, game->grid, GetTime());
       }
       if (IsKeyPressed(KEY_P)) {
-        LOG_INFO("Switch pause state", nullptr);
+        LOG_INFO("Switch pause state");
         PauseSwitchState(game);
       }
     }
