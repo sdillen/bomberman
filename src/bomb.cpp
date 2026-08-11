@@ -1,7 +1,7 @@
 #include "bomb.hpp"
 
 Bomb::Bomb(Position pos, int blastRadius, double currentTime, int ownerId)
-    : position_(pos), endTime_(currentTime + 3), startTime_(currentTime),
+    : position_(pos), endTime_(currentTime + 3),
       blastRadius_(blastRadius), ownerId_(ownerId) {}
 
 bool Bomb::isTimerExpired(double currentTime) const {

@@ -37,8 +37,6 @@ public:
                                 uint8_t outCharIds[4]);
   static bool receiveGameState(class Game *game);
 
-  static bool isServer() { return server_ != nullptr; }
-  static bool isClient() { return client_ != nullptr && peer_ != nullptr; }
   static bool isConnected();
   static void resetClientBombTracking();
 

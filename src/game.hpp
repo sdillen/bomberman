@@ -6,7 +6,6 @@
 #include "bomb_manager.hpp"
 #include <raylib.h>
 #include <memory>
-#include <functional>
 #include <string>
 
 enum class GameStateType {
@@ -26,7 +25,6 @@ enum class GameStateType {
 struct Game;
 
 constexpr int kMenuOptions = 4;
-constexpr int kPauseOptions = 1;
 constexpr int kCharacters = 18;
 constexpr int kPowerUpCount = 3;
 
@@ -54,14 +52,9 @@ enum class PowerUpType {
   BlastRadius,
 };
 
-struct PowerUp {
-  std::unique_ptr<Animation> animation;
-};
-
 struct Game {
   std::string title;
   GameStateType state{};
-  std::function<void(Game *)> stateFunction;
   std::unique_ptr<MainMenu> mainMenu;
   std::unique_ptr<PauseMenu> pauseMenu;
   std::unique_ptr<CharSelectMenu> charSelectMenu;
@@ -89,7 +82,6 @@ struct Game {
   // CharSelect (Netzwerk)
   int currentSelectingPlayer{};
   int charSelections[4]{};
-  int charSelectionCount{};
 
   // Game Over
   int winnerId = -1;
@@ -105,19 +97,6 @@ void GameLoop(Game *game);
 
 void UpdateGameState(Game *game, GameStateType stateType);
 void DestroyGame(Game *game);
-
-// MainMenu
-void MenuMoveUp(Game *game);
-void MenuMoveDown(Game *game);
-void MenuSelectOption(Game *game);
-
-// CharSelectMenu
-void NextChar(Game *game);
-void PrevChar(Game *game);
-void SelectChar(Game *game);
-
-// PauseMenu
-void PauseSwitchState(Game *game);
 
 
 

@@ -46,12 +46,11 @@ void BombManager::updateAll(PlayerManager &playerManager, float deltaTime,
 }
 
 void BombManager::createExplosion(Bomb *bomb) {
-  double startTime = GetTime();
   Position pos = bomb->getPosition();
   int blastRadius = bomb->getBlastRadius();
   for (int i = 0; i < kDirectionCount; i++) {
     auto explosion = std::make_unique<Explosion>(
-        pos, static_cast<Direction>(i), blastRadius, startTime, 6.0f);
+        pos, static_cast<Direction>(i), blastRadius, 6.0f);
     explosion->setAnimation(
         std::make_unique<Animation>(Renderer::getExplosionBlastFrames(), 0.1f));
     bomb->getExplosions()[i] = std::move(explosion);
@@ -168,7 +167,7 @@ void BombManager::startLocalExplosion(Position pos, int blastRadius,
     int actualRadius = static_cast<int>(fronts[i].size());
     if (actualRadius == 0) continue;
     auto explosion = std::make_unique<Explosion>(
-        pos, static_cast<Direction>(i), actualRadius, now, 6.0f);
+        pos, static_cast<Direction>(i), actualRadius, 6.0f);
     explosion->setAnimation(
         std::make_unique<Animation>(Renderer::getExplosionBlastFrames(),
                                     0.1f));

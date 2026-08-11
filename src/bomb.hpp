@@ -12,7 +12,6 @@ public:
   Position getPosition() const { return position_; }
   int getOwnerId() const { return ownerId_; }
   double getEndTime() const { return endTime_; }
-  double getStartTime() const { return startTime_; }
   bool isExploded() const { return isExploded_; }
   bool isTimerExpired(double currentTime) const;
   int getBlastRadius() const { return blastRadius_; }
@@ -33,7 +32,6 @@ public:
 private:
   Position position_;
   double endTime_;
-  double startTime_;
   int blastRadius_;
   int ownerId_;
   bool isExploded_{};

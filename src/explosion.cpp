@@ -1,9 +1,9 @@
 #include "explosion.hpp"
 
 Explosion::Explosion(Position origin, Direction direction, int blastRadius,
-                     double startTime, float speed)
+                     float speed)
     : origin_(origin), direction_(direction), blastRadius_(blastRadius),
-      speed_(speed), startTime_(startTime) {
+      speed_(speed) {
   switch (direction) {
   case Direction::North:
     targetPosition_ = {origin.x, origin.y - blastRadius};

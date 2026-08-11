@@ -9,10 +9,6 @@ void Logger::setLevel(LogLevel level) {
   s_currentLogLevel = level;
 }
 
-LogLevel Logger::getLevel() {
-  return s_currentLogLevel;
-}
-
 void Logger::debug(const char *format, ...) {
   va_list args;
   va_start(args, format);
@@ -24,13 +20,6 @@ void Logger::info(const char *format, ...) {
   va_list args;
   va_start(args, format);
   log(LogLevel::Info, format, args);
-  va_end(args);
-}
-
-void Logger::warn(const char *format, ...) {
-  va_list args;
-  va_start(args, format);
-  log(LogLevel::Warn, format, args);
   va_end(args);
 }
 

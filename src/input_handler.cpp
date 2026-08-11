@@ -15,15 +15,17 @@ void InputHandler::process(Game *game) {
   case GameStateType::MainMenu:
     if (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP)) {
       LOG_INFO("Menu move up");
-      MenuMoveUp(game);
+      game->mainMenu->selectedOption =
+          (game->mainMenu->selectedOption - 1 + kMenuOptions) % kMenuOptions;
     }
     if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_DOWN)) {
       LOG_INFO("Menu move down");
-      MenuMoveDown(game);
+      game->mainMenu->selectedOption =
+          (game->mainMenu->selectedOption + 1 + kMenuOptions) % kMenuOptions;
     }
     if (IsKeyPressed(KEY_ENTER)) {
       LOG_INFO("Menu select option");
-      MenuSelectOption(game);
+      game->mainMenu->next = true;
     }
     break;
 
@@ -94,13 +96,17 @@ void InputHandler::process(Game *game) {
   case GameStateType::CharSelectMenu:
     if (game->currentSelectingPlayer == 0) {
       if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT)) {
-        PrevChar(game);
+        game->charSelectMenu->selectedOption =
+            (game->charSelectMenu->selectedOption - 1 + kCharacters) %
+            kCharacters;
       }
       if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) {
-        NextChar(game);
+        game->charSelectMenu->selectedOption =
+            (game->charSelectMenu->selectedOption + 1 + kCharacters) %
+            kCharacters;
       }
       if (IsKeyPressed(KEY_ENTER)) {
-        SelectChar(game);
+        game->charSelectMenu->next = true;
       }
     }
     break;
@@ -108,10 +114,14 @@ void InputHandler::process(Game *game) {
   case GameStateType::ClientCharSelect:
     if (game->currentSelectingPlayer > 0) {
       if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT)) {
-        PrevChar(game);
+        game->charSelectMenu->selectedOption =
+            (game->charSelectMenu->selectedOption - 1 + kCharacters) %
+            kCharacters;
       }
       if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) {
-        NextChar(game);
+        game->charSelectMenu->selectedOption =
+            (game->charSelectMenu->selectedOption + 1 + kCharacters) %
+            kCharacters;
       }
       if (IsKeyPressed(KEY_ENTER)) {
         game->charSelectMenu->next = true;
@@ -142,7 +152,7 @@ void InputHandler::process(Game *game) {
       }
       if (IsKeyPressed(KEY_P)) {
         LOG_INFO("Switch pause state");
-        PauseSwitchState(game);
+        game->pauseMenu->isActive = !game->pauseMenu->isActive;
       }
     }
     break;

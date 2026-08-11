@@ -26,6 +26,8 @@ void exitState(Game *game);
 void checkPlayerOnPowerUp(Player &player, Grid &grid, std::mt19937 &rng);
 void collectPowerUp(Position pos, Player &player, Grid &grid,
                     std::mt19937 &rng);
+// true, wenn hÃ¶chstens ein Spieler lebt; setzt Sieger und Timer.
+bool checkGameOver(Game *game);
 
 Game *InitGame() {
   Game *game = new Game{};
@@ -56,89 +58,66 @@ Game *InitGame() {
 void GameLoop(Game *game) {
   while (game->state != GameStateType::Exit) {
     InputHandler::process(game);
-    game->stateFunction(game);
+    switch (game->state) {
+    case GameStateType::MainMenu:
+      mainMenuState(game);
+      break;
+    case GameStateType::HostGameMenu:
+      hostGameMenuState(game);
+      break;
+    case GameStateType::JoinGameMenu:
+      joinGameMenuState(game);
+      break;
+    case GameStateType::CharSelectMenu:
+      charSelectMenuState(game);
+      break;
+    case GameStateType::ClientCharSelect:
+      clientCharSelectState(game);
+      break;
+    case GameStateType::RunningCountdown:
+      runningCountdownState(game);
+      break;
+    case GameStateType::Running:
+      runningState(game);
+      break;
+    case GameStateType::ClientRunning:
+      clientRunningState(game);
+      break;
+    case GameStateType::GameOver:
+      gameOverState(game);
+      break;
+    case GameStateType::PauseMenu:
+      pauseState(game);
+      break;
+    case GameStateType::Exit:
+      exitState(game);
+      break;
+    }
     Renderer::render(game);
   }
 }
 
 void UpdateGameState(Game *game, GameStateType stateType) {
   game->state = stateType;
-  switch (stateType) {
-  case GameStateType::MainMenu:
-    LOG_DEBUG("game->state: mainMenuState");
-    game->stateFunction = mainMenuState;
-    break;
-  case GameStateType::HostGameMenu:
-    LOG_DEBUG("game->state: hostGameMenuState");
-    game->stateFunction = hostGameMenuState;
-    break;
-  case GameStateType::JoinGameMenu:
-    LOG_DEBUG("game->state: joinGameMenuState");
-    game->stateFunction = joinGameMenuState;
-    break;
-  case GameStateType::CharSelectMenu:
-    LOG_DEBUG("game->state: charSelectMenuState");
-    game->stateFunction = charSelectMenuState;
-    break;
-  case GameStateType::ClientCharSelect:
-    LOG_DEBUG("game->state: clientCharSelectState");
-    game->stateFunction = clientCharSelectState;
-    break;
-  case GameStateType::RunningCountdown:
-    LOG_DEBUG("game->state: runningCountdownState");
-    game->stateFunction = runningCountdownState;
-    break;
-  case GameStateType::Running:
-    LOG_DEBUG("game->state: runningState");
-    game->stateFunction = runningState;
-    break;
-  case GameStateType::ClientRunning:
-    LOG_DEBUG("game->state: clientRunningState");
-    game->stateFunction = clientRunningState;
-    break;
-  case GameStateType::GameOver:
-    LOG_DEBUG("game->state: gameOverState");
-    game->stateFunction = gameOverState;
-    break;
-  case GameStateType::PauseMenu:
-    LOG_DEBUG("game->state: pauseState");
-    game->stateFunction = pauseState;
-    break;
-  case GameStateType::Exit:
-    LOG_DEBUG("game->state: exitState");
-    game->stateFunction = exitState;
-    break;
-  }
 }
 
 void DestroyGame(Game *game) { delete game; }
 
-void MenuMoveUp(Game *game) {
-  game->mainMenu->selectedOption =
-      (game->mainMenu->selectedOption - 1 + kMenuOptions) % kMenuOptions;
-}
-
-void MenuMoveDown(Game *game) {
-  game->mainMenu->selectedOption =
-      (game->mainMenu->selectedOption + 1 + kMenuOptions) % kMenuOptions;
-}
-
-void MenuSelectOption(Game *game) { game->mainMenu->next = true; }
-
-void NextChar(Game *game) {
-  game->charSelectMenu->selectedOption =
-      (game->charSelectMenu->selectedOption + 1 + kCharacters) % kCharacters;
-}
-
-void PrevChar(Game *game) {
-  game->charSelectMenu->selectedOption =
-      (game->charSelectMenu->selectedOption - 1 + kCharacters) % kCharacters;
-}
-
-void SelectChar(Game *game) { game->charSelectMenu->next = true; }
-
-void PauseSwitchState(Game *game) {
-  game->pauseMenu->isActive = !game->pauseMenu->isActive;
+bool checkGameOver(Game *game) {
+  int aliveCount = 0;
+  int lastAliveId = -1;
+  for (int i = 0; i < kMaxPlayers; i++) {
+    if (game->playerManager.getPlayer(i)->isAlive()) {
+      aliveCount++;
+      lastAliveId = i;
+    }
+  }
+  if (aliveCount <= 1) {
+    game->winnerId = lastAliveId;
+    game->gameOverTimer = 5.0f;
+    return true;
+  }
+  return false;
 }
 
 void mainMenuState(Game *game) {
@@ -283,17 +262,7 @@ void runningState(Game *game) {
 
   game->playerManager.checkAllAlive();
 
-  int aliveCount = 0;
-  int lastAliveId = -1;
-  for (int i = 0; i < kMaxPlayers; i++) {
-    if (game->playerManager.getPlayer(i)->isAlive()) {
-      aliveCount++;
-      lastAliveId = i;
-    }
-  }
-  if (aliveCount <= 1 && game->state == GameStateType::Running) {
-    game->winnerId = lastAliveId;
-    game->gameOverTimer = 5.0f;
+  if (checkGameOver(game)) {
     if (game->isServer) {
       NetworkManager::broadcastGameState(game);
     }
@@ -442,17 +411,7 @@ void clientRunningState(Game *game) {
   NetworkManager::receiveGameState(game);
   game->bombManager.updateExplosions(game->deltaTime);
 
-  int aliveCount = 0;
-  int lastAliveId = -1;
-  for (int i = 0; i < kMaxPlayers; i++) {
-    if (game->playerManager.getPlayer(i)->isAlive()) {
-      aliveCount++;
-      lastAliveId = i;
-    }
-  }
-  if (aliveCount <= 1 && game->state == GameStateType::ClientRunning) {
-    game->winnerId = lastAliveId;
-    game->gameOverTimer = 5.0f;
+  if (checkGameOver(game)) {
     UpdateGameState(game, GameStateType::GameOver);
   }
 }

@@ -4,7 +4,7 @@
 #include "network_manager.hpp"
 #include "animation.hpp"
 #include <raylib.h>
-#include "util.hpp"
+#include <raymath.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>

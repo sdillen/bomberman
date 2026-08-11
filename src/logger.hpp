@@ -11,11 +11,9 @@ enum class LogLevel {
 class Logger {
 public:
   static void setLevel(LogLevel level);
-  static LogLevel getLevel();
 
   static void debug(const char *format, ...);
   static void info(const char *format, ...);
-  static void warn(const char *format, ...);
   static void error(const char *format, ...);
 
 private:
@@ -28,5 +26,4 @@ private:
 
 #define LOG_DEBUG(...) Logger::debug(__VA_ARGS__)
 #define LOG_INFO(...) Logger::info(__VA_ARGS__)
-#define LOG_WARN(...) Logger::warn(__VA_ARGS__)
 #define LOG_ERROR(...) Logger::error(__VA_ARGS__)
