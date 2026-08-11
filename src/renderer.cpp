@@ -3,8 +3,8 @@
 #include "logger.hpp"
 #include "network_manager.hpp"
 #include "animation.hpp"
-#include "util.hpp"
 #include <raylib.h>
+#include "util.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -33,9 +33,9 @@ const char *explosionBlastFiles[] = {
 };
 
 // Static member definitions
-std::vector<Texture2D> Renderer::bombSparkFrames_;
-std::vector<Texture2D> Renderer::explosionBlastFrames_;
-std::vector<Texture2D> Renderer::starFrames_;
+std::shared_ptr<const std::vector<Texture2D>> Renderer::bombSparkFrames_;
+std::shared_ptr<const std::vector<Texture2D>> Renderer::explosionBlastFrames_;
+std::shared_ptr<const std::vector<Texture2D>> Renderer::starFrames_;
 std::unique_ptr<Animation> Renderer::starAnimation_;
 
 Texture2D Renderer::raylibLogo_{};
@@ -59,12 +59,14 @@ void Renderer::init(Game *game) {
   }
 
   LOG_DEBUG("Load static frames");
-  starFrames_ = loadFrames(starFiles, kStarFramesNum);
-  bombSparkFrames_ = loadFrames(bombSparkFiles, kBombSparkFramesNum);
-  explosionBlastFrames_ =
-      loadFrames(explosionBlastFiles, kExplosionBlastFramesNum);
+  starFrames_ = std::make_shared<const std::vector<Texture2D>>(
+      loadFrames(starFiles, kStarFramesNum));
+  bombSparkFrames_ = std::make_shared<const std::vector<Texture2D>>(
+      loadFrames(bombSparkFiles, kBombSparkFramesNum));
+  explosionBlastFrames_ = std::make_shared<const std::vector<Texture2D>>(
+      loadFrames(explosionBlastFiles, kExplosionBlastFramesNum));
 
-  starAnimation_ = std::make_unique<Animation>(SharedFramesTag{}, starFrames_, 0.1f);
+  starAnimation_ = std::make_unique<Animation>(starFrames_, 0.1f);
 }
 
 void Renderer::unload() {
@@ -73,10 +75,10 @@ void Renderer::unload() {
   UnloadTexture(mapTexture_);
   UnloadTexture(crateTexture_);
   UnloadTexture(bombTexture_);
-  for (auto &f : starFrames_) UnloadTexture(f);
-  for (auto &f : bombSparkFrames_) UnloadTexture(f);
-  for (auto &f : explosionBlastFrames_) UnloadTexture(f);
   starAnimation_.reset();
+  for (auto &f : *starFrames_) UnloadTexture(f);
+  for (auto &f : *bombSparkFrames_) UnloadTexture(f);
+  for (auto &f : *explosionBlastFrames_) UnloadTexture(f);
 }
 
 void Renderer::render(const Game *game) {
@@ -140,11 +142,11 @@ void Renderer::render(const Game *game) {
   EndDrawing();
 }
 
-const std::vector<Texture2D> &Renderer::getBombSparkFrames() {
+std::shared_ptr<const std::vector<Texture2D>> Renderer::getBombSparkFrames() {
   return bombSparkFrames_;
 }
 
-const std::vector<Texture2D> &Renderer::getExplosionBlastFrames() {
+std::shared_ptr<const std::vector<Texture2D>> Renderer::getExplosionBlastFrames() {
   return explosionBlastFrames_;
 }
 

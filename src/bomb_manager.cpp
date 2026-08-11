@@ -19,7 +19,7 @@ bool BombManager::plantBomb(Player &owner, Grid &grid,
   grid.setCell(pos, CellType::Bomb);
   auto bomb = std::make_unique<Bomb>(pos, owner.getBlastRadius(), currentTime, owner.getId());
   bomb->setAnimation(
-      std::make_unique<Animation>(SharedFramesTag{}, Renderer::getBombSparkFrames(), 0.1f));
+      std::make_unique<Animation>(Renderer::getBombSparkFrames(), 0.1f));
   bombs_.push_back(std::move(bomb));
   return true;
 }
@@ -53,7 +53,7 @@ void BombManager::createExplosion(Bomb *bomb) {
     auto explosion = std::make_unique<Explosion>(
         pos, static_cast<Direction>(i), blastRadius, startTime, 6.0f);
     explosion->setAnimation(
-        std::make_unique<Animation>(SharedFramesTag{}, Renderer::getExplosionBlastFrames(), 0.1f));
+        std::make_unique<Animation>(Renderer::getExplosionBlastFrames(), 0.1f));
     bomb->getExplosions()[i] = std::move(explosion);
   }
 }
@@ -154,7 +154,7 @@ void BombManager::restoreBomb(Position pos, int ownerId, int blastRadius,
   double startTime = GetTime() - 3.0 + remainingTime;
   auto bomb = std::make_unique<Bomb>(pos, blastRadius, startTime, ownerId);
   bomb->setAnimation(
-      std::make_unique<Animation>(SharedFramesTag{}, Renderer::getBombSparkFrames(), 0.1f));
+      std::make_unique<Animation>(Renderer::getBombSparkFrames(), 0.1f));
   bombs_.push_back(std::move(bomb));
 }
 
@@ -170,8 +170,7 @@ void BombManager::startLocalExplosion(Position pos, int blastRadius,
     auto explosion = std::make_unique<Explosion>(
         pos, static_cast<Direction>(i), actualRadius, now, 6.0f);
     explosion->setAnimation(
-        std::make_unique<Animation>(SharedFramesTag{},
-                                    Renderer::getExplosionBlastFrames(),
+        std::make_unique<Animation>(Renderer::getExplosionBlastFrames(),
                                     0.1f));
     bomb->getExplosions()[i] = std::move(explosion);
   }

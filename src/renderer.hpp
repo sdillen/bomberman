@@ -20,13 +20,13 @@ public:
   static void render(const Game *game);
   static void setCharAnimationSet(int char_id, Player *player);
 
-  static const std::vector<Texture2D> &getBombSparkFrames();
-  static const std::vector<Texture2D> &getExplosionBlastFrames();
+  static std::shared_ptr<const std::vector<Texture2D>> getBombSparkFrames();
+  static std::shared_ptr<const std::vector<Texture2D>> getExplosionBlastFrames();
 
 private:
-  static std::vector<Texture2D> bombSparkFrames_;
-  static std::vector<Texture2D> explosionBlastFrames_;
-  static std::vector<Texture2D> starFrames_;
+  static std::shared_ptr<const std::vector<Texture2D>> bombSparkFrames_;
+  static std::shared_ptr<const std::vector<Texture2D>> explosionBlastFrames_;
+  static std::shared_ptr<const std::vector<Texture2D>> starFrames_;
   static std::unique_ptr<Animation> starAnimation_;
 
   static Texture2D raylibLogo_;
