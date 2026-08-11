@@ -12,7 +12,7 @@ bool BombManager::plantBomb(Player &owner, Grid &grid,
     return false;
   }
   Position pos = owner.getPosition();
-  if (grid.getCell(pos).type == CellType::Bomb) {
+  if (grid.getCell(pos) == CellType::Bomb) {
     return false;
   }
   LOG_INFO("Bomb planted");
@@ -98,8 +98,8 @@ void BombManager::updateBombExplosion(Bomb *bomb,
           cellPos = {origin.x - k, origin.y};
           break;
         }
-        Cell cell = grid.getCell(cellPos);
-        if (cell.type == CellType::Destructible) {
+        CellType cell = grid.getCell(cellPos);
+        if (cell == CellType::Destructible) {
           if (std::uniform_int_distribution(0, 10)(rng) < 2) {
             grid.setCell(cellPos, CellType::PowerUp);
           } else {
@@ -109,12 +109,12 @@ void BombManager::updateBombExplosion(Bomb *bomb,
           cleared = true;
           break;
         }
-        if (cell.type == CellType::SolidWall) {
+        if (cell == CellType::SolidWall) {
           bomb->clearExplosion(j);
           cleared = true;
           break;
         }
-        if (cell.type == CellType::Bomb) {
+        if (cell == CellType::Bomb) {
           Bomb *otherBomb = findBomb(cellPos);
           if (otherBomb != nullptr) {
             LOG_INFO("trigger Bomb: %d.%d", cellPos.x, cellPos.y);
@@ -163,33 +163,17 @@ void BombManager::startLocalExplosion(Position pos, int blastRadius,
   double now = GetTime();
   auto bomb = std::make_unique<Bomb>(pos, blastRadius, now, -1);
   bomb->setEndTime(0);
-  constexpr int dx[] = {0, 1, 0, -1};
-  constexpr int dy[] = {-1, 0, 1, 0};
+  auto fronts = grid.blastCells(pos, blastRadius);
   for (int i = 0; i < kDirectionCount; i++) {
-    int actualRadius = blastRadius;
-    for (int k = 1; k <= blastRadius; k++) {
-      Position cellPos = {pos.x + dx[i] * k, pos.y + dy[i] * k};
-      if (cellPos.x < 0 || cellPos.x >= kGridWidth ||
-          cellPos.y < 0 || cellPos.y >= kGridHeight) {
-        actualRadius = k - 1;
-        break;
-      }
-      Cell cell = grid.getCell(cellPos);
-      if (cell.type == CellType::SolidWall ||
-          cell.type == CellType::Destructible) {
-        actualRadius = k;
-        break;
-      }
-    }
-    if (actualRadius > 0) {
-      auto explosion = std::make_unique<Explosion>(
-          pos, static_cast<Direction>(i), actualRadius, now, 6.0f);
-      explosion->setAnimation(
-          std::make_unique<Animation>(SharedFramesTag{},
-                                      Renderer::getExplosionBlastFrames(),
-                                      0.1f));
-      bomb->getExplosions()[i] = std::move(explosion);
-    }
+    int actualRadius = static_cast<int>(fronts[i].size());
+    if (actualRadius == 0) continue;
+    auto explosion = std::make_unique<Explosion>(
+        pos, static_cast<Direction>(i), actualRadius, now, 6.0f);
+    explosion->setAnimation(
+        std::make_unique<Animation>(SharedFramesTag{},
+                                    Renderer::getExplosionBlastFrames(),
+                                    0.1f));
+    bomb->getExplosions()[i] = std::move(explosion);
   }
   bombs_.push_back(std::move(bomb));
 }

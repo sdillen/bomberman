@@ -626,9 +626,9 @@ void Renderer::renderItems(const Game *game) {
   Vector2 offset = getGridOffset();
   for (int x = 0; x < kGridWidth; x++) {
     for (int y = 0; y < kGridHeight; y++) {
-      Cell cell = game->grid.getCell({x, y});
+      CellType cell = game->grid.getCell({x, y});
       Vector2 position = {kTileSize * x + offset.x, kTileSize * y + offset.y};
-      switch (cell.type) {
+      switch (cell) {
       case CellType::Destructible:
         DrawTextureV(crateTexture_, position, WHITE);
         break;

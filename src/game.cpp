@@ -459,8 +459,7 @@ void clientRunningState(Game *game) {
 
 void checkPlayerOnPowerUp(Player &player, Grid &grid, std::mt19937 &rng) {
   Position pos = player.getPosition();
-  Cell cell = grid.getCell(pos);
-  if (cell.type == CellType::PowerUp) {
+  if (grid.getCell(pos) == CellType::PowerUp) {
     collectPowerUp(pos, player, grid, rng);
   }
 }

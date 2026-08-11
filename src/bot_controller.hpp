@@ -49,7 +49,8 @@ private:
     static Goal findChaseGoal(const Player& player, const PlayerManager& playerManager);
     static Goal findPowerUpGoal(const Player& player, const Grid& grid);
     static Goal findExploreGoal(const Player& player, const Grid& grid);
-    static bool isBombNearby(const Player& player, const BombManager& bombManager);
+    static bool isBombNearby(const Player& player, const BombManager& bombManager,
+                             const Grid& grid);
 
     static std::vector<Position> findPath(const Grid& grid, Position start, Position goal);
     static std::vector<Position> getBlastTiles(const BombManager& bombManager, const Grid& grid);

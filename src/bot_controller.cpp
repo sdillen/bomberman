@@ -5,10 +5,58 @@
 #include "player.hpp"
 #include <queue>
 #include <algorithm>
-
+#include <climits>
 
 BotController::BotState BotController::botStates_[3];
 bool BotController::initialized_ = false;
+
+namespace {
+struct Reach {
+  bool visited[kGridWidth][kGridHeight] = {};
+  int dist[kGridWidth][kGridHeight] = {};
+  Position parent[kGridWidth][kGridHeight] = {};
+};
+
+// BFS von start aus. wallAware=false ignoriert Kollisionen (reine Geometrie).
+Reach flood(const Grid &grid, Position start, int maxDepth, bool wallAware) {
+  Reach r;
+  std::queue<Position> q;
+  q.push(start);
+  r.visited[start.x][start.y] = true;
+  r.dist[start.x][start.y] = 0;
+  constexpr int dx[] = {0, 1, 0, -1};
+  constexpr int dy[] = {-1, 0, 1, 0};
+  while (!q.empty()) {
+    Position cur = q.front();
+    q.pop();
+    if (maxDepth >= 0 && r.dist[cur.x][cur.y] >= maxDepth) continue;
+    for (int i = 0; i < 4; i++) {
+      Position next = {cur.x + dx[i], cur.y + dy[i]};
+      if (next.x < 0 || next.x >= kGridWidth || next.y < 0 ||
+          next.y >= kGridHeight)
+        continue;
+      if (r.visited[next.x][next.y]) continue;
+      if (wallAware && grid.isCollision(next)) continue;
+      r.visited[next.x][next.y] = true;
+      r.dist[next.x][next.y] = r.dist[cur.x][cur.y] + 1;
+      r.parent[next.x][next.y] = cur;
+      q.push(next);
+    }
+  }
+  return r;
+}
+
+std::vector<Position> pathTo(const Reach &r, Position start, Position goal) {
+  std::vector<Position> path;
+  Position p = goal;
+  while (!(p.x == start.x && p.y == start.y)) {
+    path.push_back(p);
+    p = r.parent[p.x][p.y];
+  }
+  std::reverse(path.begin(), path.end());
+  return path;
+}
+} // namespace
 
 static Direction directionFromTo(Position from, Position to) {
     if (to.x == from.x && to.y < from.y) return Direction::North;
@@ -84,7 +132,7 @@ void BotController::updateBot(int botIndex, Player& player, PlayerManager& playe
 
     state.decisionTimer = 0.15f + static_cast<float>(std::uniform_int_distribution(0, 4)(rng)) * 0.01f;
 
-    if (isBombNearby(player, bombManager)) {
+    if (isBombNearby(player, bombManager, grid)) {
         return;
     }
 
@@ -158,52 +206,26 @@ void BotController::randomMove(Player& player, const Grid& grid, std::mt19937& r
 std::vector<Position> BotController::findSafeFleeStep(const Player& player, const Grid& grid,
                                                        const std::vector<Position>& blastTiles) {
     Position start = player.getPosition();
-    bool visited[kGridWidth][kGridHeight] = {};
-    Position parent[kGridWidth][kGridHeight]{};
-    std::queue<Position> q;
+    Reach r = flood(grid, start, -1, true);
 
-    q.push(start);
-    visited[start.x][start.y] = true;
-
-    constexpr int dx[] = {0, 1, 0, -1};
-    constexpr int dy[] = {-1, 0, 1, 0};
-
-    while (!q.empty()) {
-        Position current = q.front();
-        q.pop();
-
-        bool currentIsSafe = true;
-        for (auto& tile : blastTiles) {
-            if (tile.x == current.x && tile.y == current.y) {
-                currentIsSafe = false;
-                break;
+    Position best{};
+    int bestDist = INT_MAX;
+    for (int x = 0; x < kGridWidth; x++) {
+        for (int y = 0; y < kGridHeight; y++) {
+            if (!r.visited[x][y]) continue;
+            if (x == start.x && y == start.y) continue;
+            bool safe = true;
+            for (auto &tile : blastTiles) {
+                if (tile.x == x && tile.y == y) { safe = false; break; }
             }
-        }
-
-        if (currentIsSafe && !(current.x == start.x && current.y == start.y)) {
-            std::vector<Position> path;
-            Position p = current;
-            while (!(p.x == start.x && p.y == start.y)) {
-                path.push_back(p);
-                p = parent[p.x][p.y];
+            if (safe && r.dist[x][y] < bestDist) {
+                bestDist = r.dist[x][y];
+                best = {x, y};
             }
-            std::reverse(path.begin(), path.end());
-            return path;
-        }
-
-        for (int i = 0; i < 4; i++) {
-            Position next = {current.x + dx[i], current.y + dy[i]};
-            if (next.x < 0 || next.x >= kGridWidth || next.y < 0 || next.y >= kGridHeight) continue;
-            if (visited[next.x][next.y]) continue;
-            if (grid.isCollision(next)) continue;
-
-            visited[next.x][next.y] = true;
-            parent[next.x][next.y] = current;
-            q.push(next);
         }
     }
-
-    return {};
+    if (bestDist == INT_MAX) return {};
+    return pathTo(r, start, best);
 }
 
 BotController::Goal BotController::findBombGoal(const Player& player,
@@ -256,8 +278,8 @@ BotController::Goal BotController::findPowerUpGoal(const Player& player,
 
     for (int x = 0; x < kGridWidth; x++) {
         for (int y = 0; y < kGridHeight; y++) {
-            Cell cell = grid.getCell({x, y});
-            if (cell.type == CellType::PowerUp) {
+            CellType type = grid.getCell({x, y});
+            if (type == CellType::PowerUp) {
                 int dist = std::abs(myPos.x - x) + std::abs(myPos.y - y);
                 if (dist < bestDist) {
                     bestDist = dist;
@@ -281,8 +303,8 @@ BotController::Goal BotController::findExploreGoal(const Player& player,
 
     for (int x = 0; x < kGridWidth; x++) {
         for (int y = 0; y < kGridHeight; y++) {
-            Cell cell = grid.getCell({x, y});
-            if (cell.type != CellType::Destructible) continue;
+            CellType type = grid.getCell({x, y});
+            if (type != CellType::Destructible) continue;
 
             constexpr int dx[] = {0, 1, 0, -1};
             constexpr int dy[] = {-1, 0, 1, 0};
@@ -308,40 +330,17 @@ BotController::Goal BotController::findExploreGoal(const Player& player,
 }
 
 bool BotController::isBombNearby(const Player& player,
-                                  const BombManager& bombManager) {
-    Position start = player.getPosition();
-    bool visited[kGridWidth][kGridHeight] = {};
-    std::queue<Position> q;
-
-    constexpr int dx[] = {0, 1, 0, -1};
-    constexpr int dy[] = {-1, 0, 1, 0};
-
-    q.push(start);
-    visited[start.x][start.y] = true;
-
-    for (int depth = 0; depth <= 6 && !q.empty(); depth++) {
-        int levelSize = static_cast<int>(q.size());
-        for (int n = 0; n < levelSize; n++) {
-            Position cur = q.front();
-            q.pop();
-
+                                  const BombManager& bombManager,
+                                  const Grid& grid) {
+    Reach r = flood(grid, player.getPosition(), 6, false);
+    for (int x = 0; x < kGridWidth; x++) {
+        for (int y = 0; y < kGridHeight; y++) {
+            if (!r.visited[x][y]) continue;
             for (auto &bomb : bombManager.getBombs()) {
                 if (bomb != nullptr && !bomb->isExploded() &&
-                    bomb->getPosition().x == cur.x &&
-                    bomb->getPosition().y == cur.y) {
+                    bomb->getPosition().x == x && bomb->getPosition().y == y) {
                     return true;
                 }
-            }
-
-            for (int i = 0; i < 4; i++) {
-                Position next = {cur.x + dx[i], cur.y + dy[i]};
-                if (next.x < 0 || next.x >= kGridWidth || next.y < 0 ||
-                    next.y >= kGridHeight)
-                    continue;
-                if (visited[next.x][next.y]) continue;
-
-                visited[next.x][next.y] = true;
-                q.push(next);
             }
         }
     }
@@ -352,52 +351,9 @@ std::vector<Position> BotController::findPath(const Grid& grid, Position start, 
     if (start.x == goal.x && start.y == goal.y) return {};
     if (goal.x < 0 || goal.x >= kGridWidth || goal.y < 0 || goal.y >= kGridHeight) return {};
 
-    bool visited[kGridWidth][kGridHeight] = {};
-    Position parent[kGridWidth][kGridHeight]{};
-
-    std::queue<Position> q;
-    q.push(start);
-    visited[start.x][start.y] = true;
-
-    constexpr int dx[] = {0, 1, 0, -1};
-    constexpr int dy[] = {-1, 0, 1, 0};
-
-    while (!q.empty()) {
-        Position current = q.front();
-        q.pop();
-
-        if (current.x == goal.x && current.y == goal.y) {
-            std::vector<Position> path;
-            Position p = goal;
-            while (!(p.x == start.x && p.y == start.y)) {
-                path.push_back(p);
-                p = parent[p.x][p.y];
-            }
-            std::reverse(path.begin(), path.end());
-            return path;
-        }
-
-        for (int i = 0; i < 4; i++) {
-            Position next = {current.x + dx[i], current.y + dy[i]};
-            if (next.x < 0 || next.x >= kGridWidth || next.y < 0 || next.y >= kGridHeight) continue;
-            if (visited[next.x][next.y]) continue;
-
-            if (next.x == goal.x && next.y == goal.y) {
-                visited[next.x][next.y] = true;
-                parent[next.x][next.y] = current;
-                q.push(next);
-                continue;
-            }
-
-            if (!grid.isCollision(next)) {
-                visited[next.x][next.y] = true;
-                parent[next.x][next.y] = current;
-                q.push(next);
-            }
-        }
-    }
-
-    return {};
+    Reach r = flood(grid, start, -1, true);
+    if (!r.visited[goal.x][goal.y]) return {};
+    return pathTo(r, start, goal);
 }
 
 std::vector<Position> BotController::getBlastTiles(const BombManager& bombManager,
@@ -406,27 +362,10 @@ std::vector<Position> BotController::getBlastTiles(const BombManager& bombManage
 
     for (auto& bomb : bombManager.getBombs()) {
         if (bomb == nullptr || bomb->isExploded()) continue;
-
-        Position origin = bomb->getPosition();
-        int radius = bomb->getBlastRadius();
-
-        tiles.push_back(origin);
-
-        constexpr int dx[] = {0, 1, 0, -1};
-        constexpr int dy[] = {-1, 0, 1, 0};
-
-        for (int dir = 0; dir < 4; dir++) {
-            for (int k = 1; k <= radius; k++) {
-                Position cellPos = {origin.x + dx[dir] * k, origin.y + dy[dir] * k};
-                if (cellPos.x < 0 || cellPos.x >= kGridWidth ||
-                    cellPos.y < 0 || cellPos.y >= kGridHeight) break;
-
-                Cell cell = grid.getCell(cellPos);
-                if (cell.type == CellType::SolidWall) break;
-                if (cell.type == CellType::Destructible) break;
-
-                tiles.push_back(cellPos);
-            }
+        auto fronts = grid.blastCells(bomb->getPosition(), bomb->getBlastRadius());
+        tiles.push_back(bomb->getPosition());
+        for (auto &front : fronts) {
+            tiles.insert(tiles.end(), front.begin(), front.end());
         }
     }
 
@@ -445,8 +384,8 @@ bool BotController::isAdjacentToEnemyOrWall(const Player& player,
         Position adj = {pos.x + dx[i], pos.y + dy[i]};
         if (adj.x < 0 || adj.x >= kGridWidth || adj.y < 0 || adj.y >= kGridHeight) continue;
 
-        Cell cell = grid.getCell(adj);
-        if (cell.type == CellType::Destructible) return true;
+        CellType type = grid.getCell(adj);
+        if (type == CellType::Destructible) return true;
 
         for (int p = 0; p < kMaxPlayers; p++) {
             const Player* other = playerManager.getPlayer(p);
@@ -464,34 +403,10 @@ bool BotController::isAdjacentToEnemyOrWall(const Player& player,
 
 bool BotController::hasEscapeRoute(Position pos, int blastRadius,
                                     const Grid& grid) {
-    bool visited[kGridWidth][kGridHeight] = {};
-    std::queue<Position> q;
-    int distance[kGridWidth][kGridHeight] = {};
-
-    constexpr int dx[] = {0, 1, 0, -1};
-    constexpr int dy[] = {-1, 0, 1, 0};
-
-    q.push(pos);
-    visited[pos.x][pos.y] = true;
-    distance[pos.x][pos.y] = 0;
-
-    while (!q.empty()) {
-        Position cur = q.front();
-        q.pop();
-
-        if (distance[cur.x][cur.y] >= blastRadius + 1) return true;
-
-        for (int i = 0; i < 4; i++) {
-            Position next = {cur.x + dx[i], cur.y + dy[i]};
-            if (next.x < 0 || next.x >= kGridWidth || next.y < 0 ||
-                next.y >= kGridHeight)
-                continue;
-            if (visited[next.x][next.y]) continue;
-            if (grid.isCollision(next)) continue;
-
-            visited[next.x][next.y] = true;
-            distance[next.x][next.y] = distance[cur.x][cur.y] + 1;
-            q.push(next);
+    Reach r = flood(grid, pos, -1, true);
+    for (int x = 0; x < kGridWidth; x++) {
+        for (int y = 0; y < kGridHeight; y++) {
+            if (r.visited[x][y] && r.dist[x][y] >= blastRadius + 1) return true;
         }
     }
     return false;

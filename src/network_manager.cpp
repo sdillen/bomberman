@@ -328,7 +328,7 @@ void NetworkManager::broadcastGameState(const Game *game) {
   for (int x = 0; x < 15; x++) {
     for (int y = 0; y < 15; y++) {
       payload.grid[y * 15 + x] =
-          static_cast<uint8_t>(game->grid.getCell({x, y}).type);
+          static_cast<uint8_t>(game->grid.getCell({x, y}));
     }
   }
 

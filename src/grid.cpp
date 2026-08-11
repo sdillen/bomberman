@@ -61,19 +61,38 @@ Position Grid::getSpawn(int id) {
 }
 
 bool Grid::isCollision(Position pos) const {
-  if (grid_[pos.x][pos.y].type == CellType::Empty) {
+  if (grid_[pos.x][pos.y] == CellType::Empty) {
     return false;
   }
-  if (grid_[pos.x][pos.y].type == CellType::PowerUp) {
+  if (grid_[pos.x][pos.y] == CellType::PowerUp) {
     return false;
   }
   return true;
 }
 
-Cell Grid::getCell(Position pos) const {
+CellType Grid::getCell(Position pos) const {
   return grid_[pos.x][pos.y];
 }
 
 void Grid::setCell(Position pos, CellType type) {
-  grid_[pos.x][pos.y].type = type;
+  grid_[pos.x][pos.y] = type;
+}
+
+std::array<std::vector<Position>, kGridDirections> Grid::blastCells(
+    Position origin, int radius) const {
+  constexpr int dx[kGridDirections] = {0, 1, 0, -1}; // N, E, S, W
+  constexpr int dy[kGridDirections] = {-1, 0, 1, 0};
+  std::array<std::vector<Position>, kGridDirections> out;
+  for (int d = 0; d < kGridDirections; d++) {
+    auto &cells = out[d];
+    for (int k = 1; k <= radius; k++) {
+      Position p = {origin.x + dx[d] * k, origin.y + dy[d] * k};
+      if (p.x < 0 || p.x >= kGridWidth || p.y < 0 || p.y >= kGridHeight)
+        break;
+      cells.push_back(p);
+      CellType type = grid_[p.x][p.y];
+      if (type == CellType::SolidWall || type == CellType::Destructible) break;
+    }
+  }
+  return out;
 }
